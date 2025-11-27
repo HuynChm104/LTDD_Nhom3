@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/category_model.dart';
 import '../../services/category_service.dart';
+import '../products/product_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -47,14 +48,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 fit: StackFit.expand,
                 children: [
                   ClipRRect(
-                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(30),
+                    ),
                     child: Image.asset(
                       'assets/images/main_banner.jpg',
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
                         color: AppColors.primary,
                         child: const Center(
-                          child: Text("Banner", style: TextStyle(color: Colors.white)),
+                          child: Text(
+                            "Banner",
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ),
                     ),
@@ -75,19 +81,25 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
               child: StreamBuilder<List<CategoryModel>>(
                 key: ValueKey(selectedCategory), // Rebuild khi chọn
-                stream: CategoryService.getCategories() as Stream<List<CategoryModel>>?,
+                stream:
+                    CategoryService.getCategories()
+                        as Stream<List<CategoryModel>>?,
                 builder: (context, snapshot) {
                   // DANH SÁCH CATEGORY
-                  List<Map<String, dynamic>> allCategories = List.from(staticCategories);
+                  List<Map<String, dynamic>> allCategories = List.from(
+                    staticCategories,
+                  );
                   final List<CategoryModel> firestoreCats = snapshot.data ?? [];
 
                   if (firestoreCats.isNotEmpty) {
                     allCategories.addAll(
-                      firestoreCats.map((cat) => {
-                        'id': cat.id,
-                        'label': cat.name,
-                        'icon': Icons.local_drink_outlined,
-                      }),
+                      firestoreCats.map(
+                        (cat) => {
+                          'id': cat.id,
+                          'label': cat.name,
+                          'icon': Icons.local_drink_outlined,
+                        },
+                      ),
                     );
                   }
 
@@ -128,7 +140,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 return const SliverToBoxAdapter(
                   child: SizedBox(
                     height: 200,
-                    child: Center(child: CircularProgressIndicator(color: AppColors.primaryDark)),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryDark,
+                      ),
+                    ),
                   ),
                 );
               }
@@ -164,23 +180,30 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisSpacing: 20,
                     mainAxisSpacing: 20,
                   ),
-                  delegate: SliverChildBuilderDelegate(
-                        (ctx, i) {
-                      final p = products[i];
-                      return ProductCard(
-                        image: p.image,
-                        name: p.name,
-                        price: p.basePrice.toInt().toString(),
-                        onTap: () => Navigator.pushNamed(context, '/product-detail', arguments: p.id),
-                        onCart: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("${p.name} đã thêm vào giỏ")),
-                          );
-                        },
-                      );
-                    },
-                    childCount: products.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((ctx, i) {
+                    final p = products[i];
+                    return ProductCard(
+                      image: p.image,
+                      name: p.name,
+                      price: p.basePrice.toInt().toString(),
+
+                      // Khi ấn vào ảnh -> Sang chi tiết, truyền nguyên object p
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        '/product-detail',
+                        arguments: p, // <--- Thay p.id bằng p
+                      ),
+
+                      // Khi ấn dấu + -> Cũng sang chi tiết để chọn Size/Topping
+                      onCart: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/product-detail',
+                          arguments: p,
+                        );
+                      },
+                    );
+                  }, childCount: products.length),
                 ),
               );
             },
