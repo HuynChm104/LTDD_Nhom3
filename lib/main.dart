@@ -1,10 +1,12 @@
 // main.dart
+import 'package:bongbieng_app/providers/auth_provider.dart';
 import 'package:bongbieng_app/providers/branch_provider.dart';
 import 'package:bongbieng_app/screens/cart/cart_screen.dart';
 import 'package:bongbieng_app/screens/home/home_screen.dart';
 import 'package:bongbieng_app/screens/profile/profile_screen.dart';
 import 'package:bongbieng_app/screens/voucher/voucher_screen.dart';
 import 'package:bongbieng_app/widgets/bottom_nav_bar.dart';
+import 'package:bongbieng_app/widgets/auth_wrapper.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -27,6 +29,9 @@ class BongBiengApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
+          create: (_) => AuthProvider(),
+        ),
+        ChangeNotifierProvider(
           create: (_) => BranchProvider()..loadNearestBranch(), // Tự động lấy vị trí + chi nhánh gần nhất
         ),
         // Thêm các provider khác ở đây sau
@@ -40,7 +45,9 @@ class BongBiengApp extends StatelessWidget {
           fontFamily: 'Poppins', // Tùy chọn: thêm font đẹp
           useMaterial3: true,
         ),
-        home: const MainShell(),
+        home: AuthWrapper(
+          child: const MainShell(),
+        ),
       ),
     );
   }

@@ -1,22 +1,57 @@
 // lib/screens/profile/profile_screen.dart
+import 'package:bongbieng_app/providers/auth_provider.dart';
 import 'package:bongbieng_app/utils/constants.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final user = authProvider.user;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         elevation: 0,
         actions: [
           IconButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Đã đăng xuất")),
+            onPressed: () async {
+              // Show confirmation dialog
+              final shouldLogout = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Đăng xuất'),
+                  content: const Text('Bạn có chắc chắn muốn đăng xuất?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Hủy'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                      ),
+                      child: const Text('Đăng xuất'),
+                    ),
+                  ],
+                ),
               );
+
+              if (shouldLogout == true && context.mounted) {
+                await authProvider.signOut();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Đã đăng xuất thành công"),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              }
             },
             icon: const Icon(Icons.logout, color: AppColors.black, size: 24),
             tooltip: "Đăng xuất",
@@ -29,7 +64,7 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // === 1. AVATAR + TÊN + SĐT – CĂN GIỮA, TRÊN CÙNG ===
-            _buildUserHeader(),
+            _buildUserHeader(user),
 
             const SizedBox(height: 24),
 
@@ -92,7 +127,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   // HEADER: AVATAR + TÊN + SĐT – CĂN GIỮA
-  Widget _buildUserHeader() {
+  Widget _buildUserHeader(user) {
     return Column(
       children: [
         Stack(
@@ -100,11 +135,27 @@ class ProfileScreen extends StatelessWidget {
             CircleAvatar(
               radius: 50,
               backgroundColor: Colors.white,
-              child: CircleAvatar(
-                radius: 47,
-                backgroundColor: Colors.grey[300],
-                child: const Icon(Icons.person, size: 55, color: Colors.white),
-              ),
+              child: user?.photoURL != null
+                  ? CircleAvatar(
+                      radius: 47,
+                      backgroundImage: NetworkImage(user!.photoURL!),
+                    )
+                  : CircleAvatar(
+                      radius: 47,
+                      backgroundColor: Colors.grey[300],
+                      child: Text(
+                        user?.displayName?.isNotEmpty == true
+                            ? user!.displayName![0].toUpperCase()
+                            : user?.email?.isNotEmpty == true
+                                ? user!.email![0].toUpperCase()
+                                : '?',
+                        style: const TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
             ),
             Positioned(
               bottom: 0,
@@ -124,14 +175,14 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        const Text(
-          "Chmmm",
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.black),
+        Text(
+          user?.displayName ?? user?.email?.split('@')[0] ?? 'Người dùng',
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.black),
         ),
         const SizedBox(height: 4),
-        const Text(
-          "0842666121",
-          style: TextStyle(fontSize: 14, color: Colors.grey),
+        Text(
+          user?.email ?? '',
+          style: const TextStyle(fontSize: 14, color: Colors.grey),
         ),
       ],
     );
