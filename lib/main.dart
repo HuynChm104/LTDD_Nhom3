@@ -1,8 +1,11 @@
 // main.dart
+import 'package:bongbieng_app/models/product_model.dart';
 import 'package:bongbieng_app/providers/branch_provider.dart';
 import 'package:bongbieng_app/screens/cart/cart_screen.dart';
 import 'package:bongbieng_app/screens/home/home_screen.dart';
+import 'package:bongbieng_app/screens/products/product_detail_screen.dart';
 import 'package:bongbieng_app/screens/profile/profile_screen.dart';
+import 'package:bongbieng_app/screens/splash/splash_screen.dart';
 import 'package:bongbieng_app/screens/voucher/voucher_screen.dart';
 import 'package:bongbieng_app/widgets/bottom_nav_bar.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -40,7 +43,22 @@ class BongBiengApp extends StatelessWidget {
           fontFamily: 'Poppins', // Tùy chọn: thêm font đẹp
           useMaterial3: true,
         ),
-        home: const MainShell(),
+        // --- PHẦN THÊM VÀO ĐỂ ĐIỀU HƯỚNG ---
+        onGenerateRoute: (settings) {
+          // Kiểm tra nếu tên đường dẫn là '/product-detail'
+          if (settings.name == '/product-detail') {
+            // Lấy dữ liệu (ProductModel) được gửi kèm
+            final args = settings.arguments as ProductModel;
+
+            // Trả về màn hình chi tiết với dữ liệu đó
+            return MaterialPageRoute(
+              builder: (context) => ProductDetailScreen(product: args),
+            );
+          }
+          return null; // Để mặc định nếu không khớp
+        },
+        // --------------------------------------------------
+        home: const SplashScreen(),
       ),
     );
   }

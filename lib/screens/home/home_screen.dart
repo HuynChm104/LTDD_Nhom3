@@ -1,4 +1,3 @@
-// lib/screens/home/home_screen.dart
 import 'package:bongbieng_app/models/product_model.dart';
 import 'package:bongbieng_app/screens/home/widgets/app_bar.dart';
 import 'package:bongbieng_app/screens/home/widgets/category_card.dart';
@@ -18,6 +17,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+
+
   // MẶC ĐỊNH CHỌN "Best Seller"
   String selectedCategory = 'bestseller';
 
@@ -171,10 +172,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         image: p.image,
                         name: p.name,
                         price: p.basePrice.toInt().toString(),
-                        onTap: () => Navigator.pushNamed(context, '/product-detail', arguments: p.id),
+                        onTap: () => Navigator.pushNamed(context, '/product-detail', arguments: p),
                         onCart: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("${p.name} đã thêm vào giỏ")),
+                          Navigator.pushNamed(
+                            context,
+                            '/product-detail',
+                            arguments: p,
                           );
                         },
                       );

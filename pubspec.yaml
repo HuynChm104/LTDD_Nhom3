@@ -39,6 +39,8 @@ dependencies:
   cached_network_image: ^3.3.0
   flutter_spinkit: ^5.2.0
   intl: ^0.18.1
+  dotted_line: ^3.1.0
+  flutter_animate: ^4.5.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -74,6 +76,7 @@ flutter:
     - assets/images/macdinhsanpham.jpg
     - assets/images/main_banner.jpg
     - assets/images/hoa.jpg
+    - assets/images/logo/
 
 
 

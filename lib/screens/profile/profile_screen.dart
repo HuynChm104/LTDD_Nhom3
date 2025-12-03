@@ -11,39 +11,23 @@ class ProfileScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         elevation: 0,
-        actions: [
-          IconButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Đã đăng xuất")),
-              );
-            },
-            icon: const Icon(Icons.logout, color: AppColors.black, size: 24),
-            tooltip: "Đăng xuất",
-          ),
-        ],
+        //title: const Text("Hồ sơ"),
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
             const SizedBox(height: 24),
 
-            // === 1. AVATAR + TÊN + SĐT – CĂN GIỮA, TRÊN CÙNG ===
+            // === 1. AVATAR + TÊN + SĐT ===
             _buildUserHeader(),
 
             const SizedBox(height: 24),
 
-            // === 2. SECTION "TÔI" – CHỈ CHỨA 2 MỤC ===
+            // === 2. SECTION "TÔI" ===
             _buildSection(
               title: "Tôi",
               items: [
-                _MenuItem(
-                  icon: Icons.edit,
-                  label: "Chỉnh sửa hồ sơ",
-                  onTap: () {
-                    // Navigator.push(...) → Trang chỉnh sửa hồ sơ
-                  },
-                ),
+                _MenuItem(icon: Icons.edit, label: "Chỉnh sửa hồ sơ"),
                 _MenuItem(
                   icon: Icons.star,
                   label: "Hạng Thành viên Bạn mới",
@@ -54,24 +38,15 @@ class ProfileScreen extends StatelessWidget {
                     height: 28,
                     errorBuilder: (_, __, ___) => const Icon(Icons.star, size: 28, color: Colors.amber),
                   ),
-                  onTap: () {
-                    // Navigator.push(...) → Trang chi tiết hạng
-                  },
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            _buildSection(
-              title: "Túi đồ",
-              items: [
                 _MenuItem(icon: Icons.airplane_ticket, label: "Voucher của tôi"),
                 _MenuItem(icon: Icons.card_giftcard, label: "Giải thưởng Mini Game"),
               ],
             ),
+
             const SizedBox(height: 16),
 
+            // === 3. SECTION "KHÁC" – ĐÃ THÊM "ĐĂNG XUẤT" VÀO ĐÂY ===
             _buildSection(
               title: "Khác",
               items: [
@@ -81,17 +56,28 @@ class ProfileScreen extends StatelessWidget {
                 _MenuItem(icon: Icons.feedback, label: "Phản hồi/Góp ý"),
                 _MenuItem(icon: Icons.history, label: "Lịch sử tích bông"),
                 _MenuItem(icon: Icons.lock, label: "Đổi mật khẩu"),
+                // ĐĂNG XUẤT – NẰM CUỐI CÙNG, GIỐNG CÁC MỤC KHÁC
+                _MenuItem(
+                  icon: Icons.logout,
+                  label: "Đăng xuất",
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Đã đăng xuất thành công!")),
+                    );
+                    // TODO: Xử lý đăng xuất thật ở đây
+                  },
+                ),
               ],
             ),
 
-            const SizedBox(height: 100),
+            const SizedBox(height: 100), // Để scroll xuống thấy nút đăng xuất
           ],
         ),
       ),
     );
   }
 
-  // HEADER: AVATAR + TÊN + SĐT – CĂN GIỮA
+  // HEADER: AVATAR + TÊN + SĐT
   Widget _buildUserHeader() {
     return Column(
       children: [
@@ -155,7 +141,7 @@ class ProfileScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
               title,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.black),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.black),
             ),
           ),
           ...items.map((item) => _buildMenuItem(item)).toList(),
@@ -167,23 +153,21 @@ class ProfileScreen extends StatelessWidget {
   // ITEM TRONG SECTION
   Widget _buildMenuItem(_MenuItem item) {
     return ListTile(
-      leading: item.leading ?? Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(item.icon, color: AppColors.black, size: 20),
-      ),
+      leading: item.leading ??
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(item.icon, color: AppColors.black, size: 20),
+          ),
       title: Text(
         item.label,
-        style: TextStyle(color: AppColors.black, fontWeight: FontWeight.w500),
+        style: const TextStyle(color: AppColors.black, fontWeight: FontWeight.w500),
       ),
       subtitle: item.subtitle != null
-          ? Text(
-        item.subtitle!,
-        style: const TextStyle(fontSize: 13, color: Colors.grey),
-      )
+          ? Text(item.subtitle!, style: const TextStyle(fontSize: 13, color: Colors.grey))
           : null,
       trailing: const Icon(Icons.chevron_right, color: Colors.grey),
       onTap: item.onTap ?? () {},
