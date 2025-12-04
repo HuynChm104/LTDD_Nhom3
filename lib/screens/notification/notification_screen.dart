@@ -1,0 +1,200 @@
+// lib/screens/notification/notification_screen.dart
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../models/notification_model.dart';
+import '../../services/notification_service.dart';
+import '../../utils/constants.dart';
+
+class NotificationScreen extends StatelessWidget {
+  const NotificationScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        // Nút Back màu đen cho đồng bộ
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        centerTitle: true,
+        title: const Text(
+          "Thông báo",
+          style: TextStyle(
+            color: AppColors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            fontFamily: 'Poppins', // Ép cứng font cho giống
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => NotificationService.markAllAsRead(),
+            child: const Text(
+              "Đọc tất cả",
+              style: TextStyle(
+                color: AppColors.black, // Dùng màu chủ đạo
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Poppins',
+              ),
+            ),
+          )
+        ],
+      ),
+      body: StreamBuilder<List<NotificationModel>>(
+        stream: NotificationService.getNotifications(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+          }
+
+          final notifications = snapshot.data ?? [];
+
+          if (notifications.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.notifications_off_outlined, size: 80, color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                  Text(
+                    "Chưa có thông báo nào",
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontFamily: 'Poppins',
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: notifications.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              return _buildNotificationItem(notifications[index]);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildNotificationItem(NotificationModel notif) {
+    IconData iconData;
+    Color iconColor;
+
+    switch (notif.type) {
+      case 'promotion':
+        iconData = Icons.local_offer;
+        iconColor = Colors.orange;
+        break;
+      case 'order':
+        iconData = Icons.local_shipping;
+        iconColor = Colors.blue;
+        break;
+      default:
+        iconData = Icons.notifications;
+        iconColor = AppColors.primary;
+    }
+
+    return GestureDetector(
+      onTap: () {
+        if (!notif.isRead) {
+          NotificationService.markAsRead(notif.id);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          // Tin chưa đọc: Màu nền mờ theo màu chủ đạo. Tin đã đọc: Màu trắng
+          color: notif.isRead ? Colors.white : AppColors.primary.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(16),
+          // Chỉ hiện viền nếu đã đọc (để phân biệt)
+          border: notif.isRead
+              ? Border.all(color: Colors.grey.withValues(alpha: 0.2))
+              : Border.all(color: Colors.transparent),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon tròn
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(iconData, color: iconColor, size: 20),
+            ),
+            const SizedBox(width: 16),
+
+            // Nội dung
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          notif.title,
+                          style: TextStyle(
+                            // Chưa đọc: Chữ đen đậm. Đã đọc: Chữ xám đậm
+                            fontWeight: notif.isRead ? FontWeight.w600 : FontWeight.bold,
+                            fontSize: 15,
+                            fontFamily: 'Poppins',
+                            color: notif.isRead ? Colors.black87 : Colors.black,
+                          ),
+                        ),
+                      ),
+                      // Chấm đỏ
+                      if (!notif.isRead)
+                        Container(
+                          margin: const EdgeInsets.only(left: 8),
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    notif.body,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 13,
+                      height: 1.4,
+                      fontFamily: 'Poppins',
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    DateFormat('dd/MM HH:mm').format(notif.createdAt),
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 11,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

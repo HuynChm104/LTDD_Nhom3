@@ -4,9 +4,12 @@ import 'package:provider/provider.dart';
 import '../../../models/branch_model.dart';
 import '../../../providers/branch_provider.dart';
 import '../../../utils/constants.dart';
+import '../../../services/notification_service.dart';
+import '../../notification/notification_screen.dart';
 
 class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
-  const CustomAppBar({super.key});
+  final Function(String) onSearch;
+  const CustomAppBar({super.key, required this.onSearch});
 
   @override
   State<CustomAppBar> createState() => _CustomAppBarState();
@@ -61,16 +64,28 @@ class _CustomAppBarState extends State<CustomAppBar> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.location_on, size: 18, color: AppColors.primaryDark),
+                  const Icon(
+                    Icons.location_on,
+                    size: 18,
+                    color: AppColors.primaryDark,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       branch?.name ?? '',
-                      style: const TextStyle(color: AppColors.black, fontWeight: FontWeight.w600, fontSize: 13),
+                      style: const TextStyle(
+                        color: AppColors.black,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Icon(Icons.keyboard_arrow_down, size: 18, color: AppColors.black),
+                  const Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 18,
+                    color: AppColors.black,
+                  ),
                 ],
               ),
             ),
@@ -81,7 +96,31 @@ class _CustomAppBarState extends State<CustomAppBar> {
           children: [
             _iconButton(Icons.search, () => setState(() => isSearching = true)),
             const SizedBox(width: 12),
-            _iconButton(Icons.notifications, () => Navigator.pushNamed(context, '/notifications'), badge: 3),
+            //_iconButton(Icons.notifications, () => Navigator.pushNamed(context, '/notifications'), badge: 3),
+            // --- SỬA ĐOẠN NÀY: NÚT THÔNG BÁO REALTIME ---
+            StreamBuilder<int>(
+              stream:
+                  NotificationService.getUnreadCount(), // Lắng nghe số lượng tin chưa đọc
+              builder: (context, snapshot) {
+                // Nếu chưa có dữ liệu hoặc lỗi thì hiện số 0
+                int unreadCount = snapshot.data ?? 0;
+
+                return _iconButton(
+                  Icons.notifications,
+                  () {
+                    // Chuyển sang màn hình NotificationScreen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const NotificationScreen(),
+                      ),
+                    );
+                  },
+                  badge: unreadCount, // Truyền số lượng thật vào đây
+                );
+              },
+            ),
+            // ---------------------------------------------
           ],
         ),
       ],
@@ -99,11 +138,14 @@ class _CustomAppBarState extends State<CustomAppBar> {
               hintText: "Tìm kiếm sản phẩm...",
               filled: true,
               fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: BorderSide.none,
+              ),
               prefixIcon: const Icon(Icons.search, color: AppColors.buttonDark),
             ),
             onChanged: (value) {
-              // TODO: Search realtime
+              widget.onSearch(value);
             },
           ),
         ),
@@ -112,6 +154,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
           onTap: () => setState(() {
             isSearching = false;
             _controller.clear();
+            widget.onSearch('');
           }),
           child: const Icon(Icons.close, color: AppColors.buttonDark),
         ),
@@ -127,7 +170,10 @@ class _CustomAppBarState extends State<CustomAppBar> {
           borderRadius: BorderRadius.circular(30),
           child: Container(
             padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
             child: Icon(icon, size: 22, color: AppColors.buttonDark),
           ),
         ),
@@ -137,8 +183,18 @@ class _CustomAppBarState extends State<CustomAppBar> {
             top: 0,
             child: Container(
               padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-              child: Text(badge.toString(), style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                badge.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
       ],
