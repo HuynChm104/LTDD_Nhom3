@@ -30,7 +30,7 @@ class BongBiengApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => BranchProvider()..loadNearestBranch(), // Tự động lấy vị trí + chi nhánh gần nhất
+          create: (_) => BranchProvider(),
         ),
         // Thêm các provider khác ở đây sau
         // ChangeNotifierProvider(create: (_) => CartProvider()),
