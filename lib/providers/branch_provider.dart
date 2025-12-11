@@ -13,10 +13,10 @@ import '../services/branch_service.dart';
 enum BranchStatus {
   finding,          // Đang tìm vị trí và chi nhánh (hiện loading...)
   foundNearest,     // Đã tìm thấy chi nhánh gần nhất (hiện tên chi nhánh)
-  tooFar,           // Vị trí người dùng quá xa (hiện cảnh báo)
-  notSelected,      // Người dùng đã bỏ qua, chưa chọn chi nhánh (hiện "Chọn chi nhánh")
-  permissionDenied, // Người dùng từ chối quyền vị trí (hiện "Cấp quyền vị trí")
-  error,            // Có lỗi xảy ra (hiện thông báo lỗi)
+  // tooFar,        // Trạng thái này không còn được sử dụng
+  notSelected,      // Người dùng đã bỏ qua, hoặc chưa chọn chi nhánh
+  permissionDenied, // Người dùng từ chối quyền vị trí
+  error,            // Có lỗi xảy ra
 }
 
 class BranchProvider with ChangeNotifier {
@@ -39,9 +39,8 @@ class BranchProvider with ChangeNotifier {
   /// Trạng thái hiện tại của provider.
   BranchStatus get status => _status;
 
-  /// Thông báo đi kèm (ví dụ: "Bạn ở quá xa", "Lỗi định vị",...).
+  /// Thông báo đi kèm (ví dụ: "Lỗi định vị",...).
   String get message => _message;
-
 
   /// Hàm khởi tạo, được gọi ngay khi provider được tạo ra trong `main.dart`.
   BranchProvider() {
@@ -56,8 +55,7 @@ class BranchProvider with ChangeNotifier {
     _selectedBranch = branch;
     // Khi người dùng đã chủ động chọn, trạng thái sẽ là foundNearest
     // vì đã có một chi nhánh được xác định để phục vụ.
-    _status = BranchStatus.foundNearest;
-    notifyListeners();
+    _updateStatus(BranchStatus.foundNearest);
   }
 
   /// Cho phép UI có thể kích hoạt lại quá trình tìm kiếm (ví dụ khi có lỗi).
@@ -84,12 +82,16 @@ class BranchProvider with ChangeNotifier {
     }
   }
 
-  /// Logic cốt lõi: xin quyền, lấy vị trí, tính toán và quyết định.
+  /// Logic cốt lõi: xin quyền, lấy vị trí, và LUÔN ĐỀ XUẤT chi nhánh gần nhất.
   Future<void> _findAndSetNearestBranch() async {
     // 1. Kiểm tra và xin quyền vị trí.
     final permissionStatus = await Permission.location.request();
     if (!permissionStatus.isGranted) {
-      _updateStatus(BranchStatus.permissionDenied, "Vui lòng cấp quyền vị trí để tìm chi nhánh gần nhất.");
+      // Nếu không có quyền, chọn tạm chi nhánh đầu tiên để app tiếp tục chạy
+      _handleLocationError(
+          BranchStatus.permissionDenied,
+          "Vui lòng cấp quyền vị trí để tìm chi nhánh gần nhất."
+      );
       return;
     }
 
@@ -100,12 +102,12 @@ class BranchProvider with ChangeNotifier {
         timeLimit: const Duration(seconds: 10), // Tránh treo nếu không lấy được vị trí
       );
 
-      // 3. Tìm chi nhánh gần nhất từ danh sách _allBranches.
-      BranchModel? nearestBranch;
+      // 3. Tìm chi nhánh gần nhất từ danh sách _allBranches
+      // Đảm bảo _allBranches không rỗng (đã được kiểm tra ở _initialize)
+      BranchModel? nearestBranch = _allBranches.first;
       double minDistance = double.infinity;
 
       for (final branch in _allBranches) {
-        // Sử dụng hàm distanceTo từ model của bạn. distanceTo trả về km.
         final distance = branch.distanceTo(userPosition.latitude, userPosition.longitude);
         if (distance < minDistance) {
           minDistance = distance;
@@ -113,22 +115,29 @@ class BranchProvider with ChangeNotifier {
         }
       }
 
-      // 4. Kiểm tra khoảng cách và quyết định trạng thái.
-      const double maxDistanceInKm = 20.0; // Giới hạn 20km
+      // 4. LUÔN LUÔN ĐỀ XUẤT CHI NHÁNH GẦN NHẤT
+      // Bất kể khoảng cách xa hay gần, chỉ cần tìm được là sẽ chọn.
+      _selectedBranch = nearestBranch;
+      _updateStatus(BranchStatus.foundNearest);
 
-      if (nearestBranch != null && minDistance <= maxDistanceInKm) {
-        // Tìm thấy và trong phạm vi cho phép -> Tự động chọn chi nhánh đó.
-        _selectedBranch = nearestBranch;
-        _updateStatus(BranchStatus.foundNearest);
-      } else {
-        // Quá xa hoặc không tìm thấy chi nhánh nào.
-        _selectedBranch = null; // Không tự động chọn
-        _updateStatus(BranchStatus.tooFar, "Bạn ở quá xa, vui lòng chọn chi nhánh thủ công.");
-      }
     } on TimeoutException {
-      _updateStatus(BranchStatus.error, "Không thể lấy vị trí của bạn. Vui lòng kiểm tra GPS và thử lại.");
+      // Nếu không lấy được vị trí do hết giờ, chọn tạm chi nhánh đầu tiên
+      _handleLocationError(BranchStatus.notSelected, "Không thể định vị, đã chọn tạm chi nhánh.");
     } catch (e) {
-      _updateStatus(BranchStatus.error, "Đã xảy ra lỗi khi định vị: ${e.toString()}");
+      // Nếu có lỗi khác, cũng chọn tạm chi nhánh đầu tiên
+      _handleLocationError(BranchStatus.notSelected, "Lỗi định vị, đã chọn tạm chi nhánh.");
+    }
+  }
+
+  /// Hàm helper để xử lý các lỗi liên quan đến vị trí một cách nhất quán
+  void _handleLocationError(BranchStatus status, String message) {
+    if (_allBranches.isNotEmpty) {
+      _selectedBranch = _allBranches.first;
+      // Trạng thái notSelected để UI hiểu là "chưa chọn được" và có thể hiển thị thông báo
+      _updateStatus(status, message);
+    } else {
+      // Nếu không có chi nhánh nào thì mới báo lỗi nghiêm trọng
+      _updateStatus(BranchStatus.error, "Không tìm thấy chi nhánh nào và không thể định vị.");
     }
   }
 

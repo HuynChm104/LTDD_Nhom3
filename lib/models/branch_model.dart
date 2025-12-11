@@ -1,34 +1,38 @@
-// models/branch_model.dart
+// lib/models/branch_model.dart
 import 'dart:math';
 
 class BranchModel {
   final String id;
   final String name;
   final String address;
-  final double latitude;
-  final double longitude;
+  double latitude;  // <-- Bỏ 'final' để có thể gán lại giá trị
+  double longitude; // <-- Bỏ 'final' để có thể gán lại giá trị
 
   BranchModel({
     required this.id,
     required this.name,
     required this.address,
-    required this.latitude,
-    required this.longitude,
+    this.latitude = 0.0,  // <-- Thêm giá trị mặc định
+    this.longitude = 0.0, // <-- Thêm giá trị mặc định
   });
 
   /// Từ Firestore → BranchModel
   factory BranchModel.fromJson(String id, Map<String, dynamic> json) {
+    // Bây giờ, ta chỉ cần đọc address. Tọa độ sẽ được cập nhật sau.
     return BranchModel(
       id: id,
       name: json['name']?.toString() ?? '',
       address: json['address']?.toString() ?? '',
-      latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
-      longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+      // Không cần đọc latitude/longitude từ Firestore nữa vì ta sẽ tự tìm nó
     );
   }
 
   /// Tính khoảng cách (km) từ vị trí hiện tại đến chi nhánh
   double distanceTo(double lat, double lng) {
+    if (latitude == 0.0 || longitude == 0.0) {
+      // Nếu chi nhánh không có tọa độ hợp lệ, trả về khoảng cách vô cùng
+      return double.infinity;
+    }
     const double R = 6371.0; // Bán kính Trái Đất (km)
     final double dLat = _toRadians(lat - latitude);
     final double dLng = _toRadians(lng - longitude);

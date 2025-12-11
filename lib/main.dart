@@ -1,8 +1,8 @@
-// main.dart
 import 'package:bongbieng_app/models/product_model.dart';
 import 'package:bongbieng_app/providers/branch_provider.dart';
 import 'package:bongbieng_app/screens/cart/cart_screen.dart';
 import 'package:bongbieng_app/screens/home/home_screen.dart';
+import 'package:bongbieng_app/screens/onboarding/onboarding_screen.dart';
 import 'package:bongbieng_app/screens/products/product_detail_screen.dart';
 import 'package:bongbieng_app/screens/profile/profile_screen.dart';
 import 'package:bongbieng_app/screens/splash/splash_screen.dart';
@@ -33,7 +33,6 @@ class BongBiengApp extends StatelessWidget {
           create: (_) => BranchProvider(),
         ),
         // Thêm các provider khác ở đây sau
-        // ChangeNotifierProvider(create: (_) => CartProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -58,7 +57,7 @@ class BongBiengApp extends StatelessWidget {
           return null; // Để mặc định nếu không khớp
         },
         // --------------------------------------------------
-        home: const SplashScreen(),
+        home: const OnboardingScreen(),
       ),
     );
   }

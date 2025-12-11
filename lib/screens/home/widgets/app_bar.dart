@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:permission_handler/permission_handler.dart'; // <--- THÊM IMPORT NÀY
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../models/branch_model.dart';
 import '../../../providers/branch_provider.dart';
@@ -46,15 +46,15 @@ class _CustomAppBarState extends State<CustomAppBar> {
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             // Truyền trạng thái mới vào _buildNormalBar
-            child: isSearching ? _buildSearchField() : _buildNormalBar(selectedBranch, status),
+            child: isSearching ? _buildSearchField() : _buildNormalBar(selectedBranch, status, provider.message),
           ),
         ),
       ),
     );
   }
 
-  // WIDGET NÀY ĐƯỢC NÂNG CẤP ĐỂ HIỂN THỊ ĐÚNG THEO TỪNG TRẠNG THÁI
-  Widget _buildNormalBar(BranchModel? branch, BranchStatus status) {
+  // WIDGET NÀY ĐƯỢC CẬP NHẬT ĐỂ HIỂN THỊ ĐÚNG THEO TỪNG TRẠNG THÁI
+  Widget _buildNormalBar(BranchModel? branch, BranchStatus status, String message) {
     String displayText;
     Widget leadingIcon;
     bool isClickable = true;
@@ -75,24 +75,21 @@ class _CustomAppBarState extends State<CustomAppBar> {
         displayText = branch?.name ?? "Chọn chi nhánh";
         leadingIcon = const Icon(Icons.location_on, size: 18, color: AppColors.primaryDark);
         break;
-      case BranchStatus.tooFar:
-        displayText = "Bạn ở quá xa, hãy chọn thủ công";
-        leadingIcon = const Icon(Icons.warning_amber_rounded, size: 18, color: Colors.orange);
-        break;
+    // --- TRƯỜNG HỢP BranchStatus.tooFar ĐÃ ĐƯỢC XÓA ---
       case BranchStatus.permissionDenied:
-        displayText = "Hãy cấp quyền vị trí";
+        displayText = message.isNotEmpty ? message : "Hãy cấp quyền vị trí";
         leadingIcon = const Icon(Icons.location_off, size: 18, color: Colors.red);
         // Khi bị từ chối, bấm vào sẽ yêu cầu mở cài đặt
         onTapAction = () => _showPermissionDialog(context);
         break;
       case BranchStatus.error:
       // Khi lỗi, bấm vào sẽ thử lại
-        displayText = "Lỗi! Bấm để thử lại";
+        displayText = message.isNotEmpty ? message : "Lỗi! Bấm để thử lại";
         leadingIcon = const Icon(Icons.error_outline, size: 18, color: Colors.red);
         onTapAction = () => context.read<BranchProvider>().retryInitialization();
         break;
       case BranchStatus.notSelected:
-        displayText = "Chọn chi nhánh phục vụ";
+        displayText = message.isNotEmpty ? message : "Chọn chi nhánh phục vụ";
         leadingIcon = const Icon(Icons.storefront, size: 18, color: AppColors.primaryDark);
         break;
     }
@@ -136,18 +133,15 @@ class _CustomAppBarState extends State<CustomAppBar> {
           children: [
             _iconButton(Icons.search, () => setState(() => isSearching = true)),
             const SizedBox(width: 12),
-            // --- SỬA ĐOẠN NÀY: NÚT THÔNG BÁO REALTIME ---
+            // --- NÚT THÔNG BÁO REALTIME ---
             StreamBuilder<int>(
               stream:
               NotificationService.getUnreadCount(), // Lắng nghe số lượng tin chưa đọc
               builder: (context, snapshot) {
-                // Nếu chưa có dữ liệu hoặc lỗi thì hiện số 0
                 int unreadCount = snapshot.data ?? 0;
-
                 return _iconButton(
                   Icons.notifications,
                       () {
-                    // Chuyển sang màn hình NotificationScreen
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -155,11 +149,11 @@ class _CustomAppBarState extends State<CustomAppBar> {
                       ),
                     );
                   },
-                  badge: unreadCount, // Truyền số lượng thật vào đây
+                  badge: unreadCount,
                 );
               },
             ),
-            // ---------------------------------------------
+            // -----------------------------
           ],
         ),
       ],
@@ -240,9 +234,8 @@ class _CustomAppBarState extends State<CustomAppBar> {
     );
   }
 
-  // NÂNG CẤP MODAL CHỌN CHI NHÁNH
+  // MODAL CHỌN CHI NHÁNH ĐÃ ĐƯỢC ĐƠN GIẢN HÓA
   void _showBranchPicker(BuildContext context) {
-    // Dùng context.read vì chỉ cần gọi hàm, không cần rebuild khi provider thay đổi
     final provider = context.read<BranchProvider>();
     final allBranches = provider.allBranches;
     final selectedBranchId = provider.selectedBranch?.id;
@@ -255,14 +248,11 @@ class _CustomAppBarState extends State<CustomAppBar> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
+              const Padding(
+                padding: EdgeInsets.all(16.0),
                 child: Text(
-                  // Thêm thông báo nếu người dùng ở quá xa
-                  provider.status == BranchStatus.tooFar
-                      ? "Bạn ở khá xa chúng tôi!\nVui lòng chọn một chi nhánh để phục vụ."
-                      : "Chọn chi nhánh gần bạn",
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  "Chọn chi nhánh gần bạn", // --- XÓA ĐIỀU KIỆN KIỂM TRA "tooFar" ---
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -281,9 +271,9 @@ class _CustomAppBarState extends State<CustomAppBar> {
                           ? const Icon(Icons.check_circle, color: AppColors.primaryDark)
                           : null,
                       onTap: () {
-                        // Khi người dùng bấm chọn, gọi hàm trong provider
                         provider.selectBranch(branch);
-                        Navigator.of(ctx).pop(); // Đóng modal
+
+                        Navigator.of(ctx).pop();
                       },
                     );
                   },
@@ -296,7 +286,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
     );
   }
 
-  // HÀM MỚI ĐỂ XỬ LÝ KHI NGƯỜI DÙNG TỪ CHỐI QUYỀN
+  // HÀM XỬ LÝ KHI NGƯỜI DÙNG TỪ CHỐI QUYỀN
   void _showPermissionDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -310,7 +300,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
           TextButton(
             child: const Text("Mở Cài Đặt"),
             onPressed: () {
-              openAppSettings(); // Mở thẳng đến cài đặt của ứng dụng
+              openAppSettings();
               Navigator.of(ctx).pop();
             },
           ),
