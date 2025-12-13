@@ -33,7 +33,8 @@ class _HomeScreenState extends State<HomeScreen> {
     bool hasKeyword = _searchKeyword.isNotEmpty;
 
     return Scaffold(
-      backgroundColor: AppColors.white,
+      // SỬA MÀU #1: Sử dụng màu nền chung từ constants
+      backgroundColor: AppColors.background,
       extendBodyBehindAppBar: true,
 
       // APP BAR XỬ LÝ TÌM KIẾM
@@ -63,7 +64,8 @@ class _HomeScreenState extends State<HomeScreen> {
           // LỚP 2: MÀN HÌNH TÌM KIẾM (CHỈ HIỆN KHI CÓ CHỮ)
           if (hasKeyword)
             Container(
-              color: Colors.white, // Nền trắng che trang chủ đi
+              // SỬA MÀU #2: Sử dụng màu nền chung để che đi trang chủ
+              color: AppColors.background,
               width: double.infinity,
               height: double.infinity,
               child: _buildSearchResults(),
@@ -82,7 +84,11 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const SliverToBoxAdapter(
-                child: SizedBox(height: 300, child: Center(child: CircularProgressIndicator(color: AppColors.primaryDark))),
+                child: SizedBox(
+                  height: 300,
+                  // SỬA MÀU #3: Dùng màu chủ đạo cho vòng xoay loading
+                  child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                ),
               );
             }
             try {
@@ -100,7 +106,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Container(
                     height: 300,
                     alignment: Alignment.center,
-                    child: Text("Không tìm thấy món nào tên \"$_searchKeyword\""),
+                    child: Text(
+                      "Không tìm thấy món nào tên \"$_searchKeyword\"",
+                      // Sử dụng style từ theme để đồng bộ
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.textGrey),
+                    ),
                   ),
                 );
               }
@@ -110,7 +120,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 120, 20, 100),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, childAspectRatio: 0.88, crossAxisSpacing: 20, mainAxisSpacing: 20,
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.82, // Cập nhật lại tỷ lệ cho khớp với ProductCard
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
                   ),
                   delegate: SliverChildBuilderDelegate((ctx, i) {
                     final p = products[i];
@@ -125,7 +138,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               );
             } catch (e) {
-              return SliverToBoxAdapter(child: Center(child: Text("Lỗi: $e")));
+              return SliverToBoxAdapter(
+                  child: Center(
+                      child: Text(
+                        "Lỗi: $e",
+                        style: const TextStyle(color: AppColors.error),
+                      )
+                  )
+              );
             }
           },
         ),

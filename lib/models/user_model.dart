@@ -1,4 +1,6 @@
-// models/user_model.dart
+// lib/models/user_model.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class UserModel {
   final String id;
   final String name;
@@ -22,18 +24,19 @@ class UserModel {
     required this.createdAt,
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> json) {
+
+  factory UserModel.fromFirestore(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return UserModel(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      email: json['email'] ?? '',
-      phone: json['phone'] ?? '',
-      address: json['address'] ?? '',
-      vouchers: List<String>.from(json['vouchers']) ?? [],
-      favoriteBranch: json['favoriteBranch'] ?? '',
-      avatar: json['avatar'] ?? '',
-      createdAt: DateTime.parse(json['createdAt']) ?? DateTime.now(),
+      id: doc.id,
+      name: data['name'] ?? '',
+      email: data['email'] ?? '',
+      phone: data['phone'] ?? '',
+      address: data['address'] ?? '',
+      vouchers: data['vouchers'] != null ? List<String>.from(data['vouchers']) : [],
+      favoriteBranch: data['favoriteBranch'] ?? '',
+      avatar: data['avatar'] ?? '',
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 }
-

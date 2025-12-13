@@ -2,7 +2,7 @@ class CartItemModel {
   final String id;
   final String userId;
   final String productId;
-  final int quantity;
+   int quantity;
   final String size;
   final List<String>? toppings;   // topping optional
   final String? sugarLevel;       // sugar optional

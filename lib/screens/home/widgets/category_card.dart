@@ -1,51 +1,69 @@
-// file: lib/screens/home/widgets/category_card.dart
-import 'dart:ui';
+// lib/screens/home/widgets/category_card.dart
 import 'package:flutter/material.dart';
-
 import '../../../utils/constants.dart';
 
-class CategoryCard extends StatelessWidget { // Đổi tên class
+class CategoryCard extends StatelessWidget {
   final String label;
   final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const CategoryCard({super.key, required this.label, required this.icon, required this.isSelected, required this.onTap});
+  const CategoryCard({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Lấy màu từ file constants mới
+    const Color selectedColor = AppColors.primary;
+    const Color unselectedColor = AppColors.primary;
+    const Color selectedBackgroundColor = AppColors.primary;
+    const Color unselectedBackgroundColor = AppColors.surface; // Nền trắng/surface
+    const Color selectedContentColor = AppColors.white; // Chữ và icon khi được chọn
+
     return GestureDetector(
       onTap: onTap,
-      // Thiết kế theo hình bên phải: hình chữ nhật bo tròn với icon/label bên trong
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), // Tăng padding dọc một chút
         decoration: BoxDecoration(
-          // Thay đổi: Màu nền dựa vào trạng thái chọn
-          color: isSelected ? AppColors.buttonDark : AppColors.white,
+          //Màu nền dựa trên trạng thái
+          color: isSelected ? selectedBackgroundColor : unselectedBackgroundColor,
           borderRadius: BorderRadius.circular(16),
-          // Thay đổi: Viền màu xanh đậm khi chưa chọn
-          border: Border.all(color: AppColors.buttonDark, width: isSelected ? 0 : 1),
+          //Viền màu chủ đạo khi chưa chọn
+          border: Border.all(
+            color: selectedColor,
+            width: isSelected ? 2 : 1.5, // Viền dày hơn một chút khi được chọn
+          ),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(isSelected ? 0.1 : 0.05), blurRadius: 8, offset: const Offset(0, 4)),
+            // Giữ lại hiệu ứng đổ bóng nhẹ
+            BoxShadow(
+              color: AppColors.primary.withOpacity(isSelected ? 0.2 : 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min, // Đảm bảo container không bị kéo giãn quá mức
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-                icon,
-                size: 20,
-                // Màu icon
-                color: isSelected ? AppColors.white : AppColors.buttonDark
+              icon,
+              size: 20,
+              //Màu icon
+              color: isSelected ? selectedContentColor : unselectedColor,
             ),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                // Màu chữ
-                color: isSelected ? AppColors.white : AppColors.primaryDark,
+                //Màu chữ
+                color: isSelected ? selectedContentColor : unselectedColor,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),

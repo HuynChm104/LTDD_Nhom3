@@ -33,6 +33,7 @@ class _HomeContentState extends State<HomeContent> with AutomaticKeepAliveClient
     super.build(context); // BẮT BUỘC
 
     // ĐÂY LÀ ĐOẠN CODE CŨ CỦA BẠN (CustomScrollView) ĐƯỢC CHUYỂN SANG ĐÂY
+    // CustomScrollView sẽ tự động lấy màu nền từ Scaffold, không cần đặt màu nền ở đây.
     return CustomScrollView(
       slivers: [
         // 1. BANNER
@@ -52,6 +53,7 @@ class _HomeContentState extends State<HomeContent> with AutomaticKeepAliveClient
                     'assets/images/main_banner.jpg',
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
+                      // SỬA MÀU #1: Đảm bảo dùng đúng màu chủ đạo
                       color: AppColors.primary,
                       child: const Center(
                         child: Text("Banner", style: TextStyle(color: Colors.white)),
@@ -67,15 +69,19 @@ class _HomeContentState extends State<HomeContent> with AutomaticKeepAliveClient
         // 2. CATEGORY
         SliverToBoxAdapter(
           child: Container(
+            // Đoạn này tạo hiệu ứng "nâng" khu vực category lên trên banner một chút
+            // do bo tròn của banner bị che đi.
+            // Bằng cách đổi màu nền thành màu nền chung của app, nó sẽ liền mạch hơn.
             margin: const EdgeInsets.only(top: 0),
             decoration: const BoxDecoration(
-              color: AppColors.white,
+              // SỬA MÀU #2: Đồng bộ với màu nền của Scaffold
+              color: AppColors.background,
               borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
             ),
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
             child: StreamBuilder<List<CategoryModel>>(
               key: ValueKey(selectedCategory),
-              stream: CategoryService.getCategories() as Stream<List<CategoryModel>>?,
+              stream: CategoryService.getCategories(),
               builder: (context, snapshot) {
                 List<Map<String, dynamic>> allCategories = List.from(staticCategories);
                 final List<CategoryModel> firestoreCats = snapshot.data ?? [];
@@ -91,7 +97,7 @@ class _HomeContentState extends State<HomeContent> with AutomaticKeepAliveClient
                 }
 
                 return SizedBox(
-                  height: 45,
+                  height: 50, // Tăng chiều cao một chút để thẻ CategoryCard không bị quá chật
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     itemCount: allCategories.length,
@@ -126,7 +132,8 @@ class _HomeContentState extends State<HomeContent> with AutomaticKeepAliveClient
               return const SliverToBoxAdapter(
                 child: SizedBox(
                   height: 200,
-                  child: Center(child: CircularProgressIndicator(color: AppColors.primaryDark)),
+                  // SỬA MÀU #3: Dùng màu chủ đạo cho vòng xoay loading
+                  child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
                 ),
               );
             }
@@ -147,12 +154,13 @@ class _HomeContentState extends State<HomeContent> with AutomaticKeepAliveClient
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 0.88,
+                  childAspectRatio: 0.82, // Điều chỉnh tỷ lệ để card sản phẩm cân đối hơn
                   crossAxisSpacing: 20,
                   mainAxisSpacing: 20,
                 ),
                 delegate: SliverChildBuilderDelegate((ctx, i) {
                   final p = products[i];
+                  // ProductCard sẽ cần được cập nhật ở một file riêng
                   return ProductCard(
                     image: p.image,
                     name: p.name,

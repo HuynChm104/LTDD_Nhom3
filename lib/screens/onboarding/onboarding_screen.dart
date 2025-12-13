@@ -1,12 +1,15 @@
 // lib/screens/onboarding/onboarding_screen.dart
 import 'dart:async';
+import 'package:bongbieng_app/screens/auth/login_screen.dart'; // Giữ lại import này để tham khảo
+import 'package:bongbieng_app/screens/auth/register_screen.dart'; // Giữ lại import này để tham khảo
 import 'package:flutter/material.dart';
 import '../../utils/constants.dart';
 import 'onboarding_content.dart';
 import 'dot_indicator.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key});
+  final VoidCallback onCompleted;
+  const OnboardingScreen({super.key, required this.onCompleted});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -53,34 +56,37 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     {
       "image": "assets/images/onboarding/7.jpg",
       "title": "Chào Mừng Bạn Đến Bông Biêng",
-      "description": "Khám phá thế giới đồ uống đa dạng và độc đáo của chúng tôi.",
+      "description":
+      "Khám phá thế giới đồ uống đa dạng và độc đáo của chúng tôi.",
     },
     {
       "image": "assets/images/onboarding/6.jpg",
       "title": "Đặt Hàng Nhanh Chóng",
-      "description": "Chỉ với vài cú chạm, đồ uống yêu thích sẽ được giao đến tận nơi.",
+      "description":
+      "Chỉ với vài cú chạm, đồ uống yêu thích sẽ được giao đến tận nơi.",
     },
     {
       "image": "assets/images/onboarding/5.jpg",
       "title": "Bắt Đầu Ngay Thôi!",
-      "description": "Tạo tài khoản để nhận ưu đãi hoặc đăng nhập để tiếp tục trải nghiệm.",
+      "description":
+      "Tạo tài khoản để nhận ưu đãi hoặc đăng nhập để tiếp tục trải nghiệm.",
     },
   ];
 
-  void _navigateToAuthScreen() {
-    _pageController.animateToPage(
-      _onboardingData.length - 1,
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
-    );
+  // Hàm này giữ nguyên, nó chỉ báo cho AuthWrapper biết onboarding đã xong
+  void _completeOnboarding() {
+    widget.onCompleted();
   }
+
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       body: Stack(
         children: [
-          // LỚP DƯỚI CÙNG: Ảnh nền có thể lướt được
+          // Lớp 1 và 2: PageView và Gradient Overlay (Giữ nguyên)
           PageView.builder(
             controller: _pageController,
             itemCount: _onboardingData.length,
@@ -94,9 +100,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               image: _onboardingData[index]['image']!,
             ),
           ),
-
-          // LỚP PHỦ MÀU: Lớp này sẽ không nhận tương tác
-          IgnorePointer( // <--- SỬA LỖI #1
+          IgnorePointer(
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -104,57 +108,51 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.black.withOpacity(0.1),
-                    Colors.black.withOpacity(0.3),
-                    Colors.black.withOpacity(0.7),
+                    Colors.black.withOpacity(0.4),
+                    AppColors.primary.withOpacity(0.5),
                   ],
-                  stops: const [0.0, 0.4, 1.0],
+                  stops: const [0.0, 0.5, 1.0],
                 ),
               ),
             ),
           ),
 
-          // LỚP TRÊN CÙNG: Chứa các nút và chữ
+          // Lớp 3: Nội dung UI
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
                 children: [
-                  // Nút "Bỏ qua" ở góc trên bên phải
+                  // Nút Bỏ qua (Giữ nguyên)
                   Align(
                     alignment: Alignment.topRight,
                     child: TextButton(
-                      onPressed: _navigateToAuthScreen,
-                      child: const Text(
-                        "Bỏ qua",
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
+                      onPressed: _completeOnboarding,
+                      style: TextButton.styleFrom(foregroundColor: Colors.white),
+                      child: const Text("Bỏ qua"),
                     ),
                   ),
-
                   const Spacer(),
 
-                  // PHẦN CHỮ: Bọc trong IgnorePointer để cho phép lướt
-                  IgnorePointer( // <--- SỬA LỖI #2
-                    child: Column(
-                      children: [
-                        Text(
-                          _onboardingData[_pageIndex]['title']!,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _onboardingData[_pageIndex]['description']!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white70, height: 1.5, fontSize: 16),
-                        ),
-                      ],
-                    ),
+                  // Phần Text và DotIndicator (Giữ nguyên)
+                  Column(
+                    children: [
+                      Text(
+                        _onboardingData[_pageIndex]['title']!,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.displaySmall?.copyWith(
+                            fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _onboardingData[_pageIndex]['description']!,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                            color: Colors.white.withOpacity(0.8), height: 1.5),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 40),
-
-                  // DẤU CHẤM
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(
@@ -167,55 +165,57 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   const SizedBox(height: 40),
 
-                  // PHẦN NÚT: Các nút này vẫn phải bấm được nên chúng nằm ngoài IgnorePointer
-                  if (_pageIndex == _onboardingData.length - 1)
-                    Column(
-                      children: [
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(50),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                  // Phần nút bấm chính
+                  SizedBox(
+                    width: double.infinity,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: _pageIndex == _onboardingData.length - 1
+                      // === SỬA ĐỔI TẠI ĐÂY: TÁCH THÀNH 2 NÚT RIÊNG BIỆT ===
+                          ? Column(
+                        key: const ValueKey('auth_buttons'),
+                        children: [
+                          // Nút 1: TẠO TÀI KHOẢN (Nút chính)
+                          ElevatedButton(
+                            onPressed: () {
+                              // Báo cho AuthWrapper biết onboarding đã xong
+                              _completeOnboarding();
+                              // Sau đó điều hướng đến màn hình Đăng ký
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen()));
+                            },
+                            child: const Text("Tạo tài khoản"),
                           ),
-                          onPressed: () {
-                            print("Chuyển đến màn hình Đăng nhập");
-                          },
-                          child: const Text("Đăng nhập"),
-                        ),
-                        const SizedBox(height: 16),
-                        OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(50),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                          const SizedBox(height: 16),
+
+                          // Nút 2: ĐĂNG NHẬP (Nút phụ)
+                          OutlinedButton(
+                            onPressed: () {
+                              _completeOnboarding();
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(color: Colors.white.withOpacity(0.8), width: 1.5),
+                              backgroundColor: Colors.white.withOpacity(0.1),
                             ),
-                            side: const BorderSide(color: AppColors.primary),
+                            child: const Text("Đăng nhập"),
                           ),
-                          onPressed: () {
-                            print("Chuyển đến màn hình Đăng ký");
-                          },
-                          child: const Text("Tạo tài khoản", style: TextStyle(color: Colors.white)),
-                        ),
-                      ],
-                    )
-                  else
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        ],
+                      )
+                      // ========================================================
+                          : ElevatedButton( // Nút "Tiếp tục" (Giữ nguyên)
+                        key: const ValueKey('continue_button'),
+                        onPressed: () {
+                          _pageController.nextPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.ease,
+                          );
+                          _resetTimer();
+                        },
+                        child: const Text("Tiếp tục"),
                       ),
-                      onPressed: () {
-                        _pageController.nextPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.ease,
-                        );
-                        _resetTimer();
-                      },
-                      child: const Text("Tiếp tục"),
                     ),
+                  ),
                   const SizedBox(height: 20),
                 ],
               ),

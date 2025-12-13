@@ -1,8 +1,6 @@
-// lib/screens/splash/splash_screen.dart
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_animate/flutter_animate.dart'; // Import thư viện animate
-import '../../utils/constants.dart';
 import '../../main.dart';
 
 class SplashScreen extends StatefulWidget {

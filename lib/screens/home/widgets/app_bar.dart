@@ -1,3 +1,4 @@
+// lib/screens/home/widgets/app_bar.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -31,11 +32,11 @@ class _CustomAppBarState extends State<CustomAppBar> {
 
   @override
   Widget build(BuildContext context) {
-    // Lắng nghe provider để lấy trạng thái và dữ liệu mới nhất
     final provider = context.watch<BranchProvider>();
     final selectedBranch = provider.selectedBranch;
     final status = provider.status;
 
+    // AppBar đã có theme chung từ main.dart, không cần set màu ở đây
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
@@ -45,7 +46,6 @@ class _CustomAppBarState extends State<CustomAppBar> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
-            // Truyền trạng thái mới vào _buildNormalBar
             child: isSearching ? _buildSearchField() : _buildNormalBar(selectedBranch, status, provider.message),
           ),
         ),
@@ -53,44 +53,45 @@ class _CustomAppBarState extends State<CustomAppBar> {
     );
   }
 
-  // WIDGET NÀY ĐƯỢC CẬP NHẬT ĐỂ HIỂN THỊ ĐÚNG THEO TỪNG TRẠNG THÁI
   Widget _buildNormalBar(BranchModel? branch, BranchStatus status, String message) {
     String displayText;
     Widget leadingIcon;
     bool isClickable = true;
     VoidCallback? onTapAction = () => _showBranchPicker(context);
 
+    // Dùng theme để lấy màu sắc đã định nghĩa
+    final theme = Theme.of(context);
+    final primaryColor = AppColors.primary; // Màu xanh đậm chủ đạo
+    final errorColor = AppColors.error; // Màu đỏ từ theme
+
     switch (status) {
       case BranchStatus.finding:
         displayText = "Đang tìm chi nhánh...";
-        leadingIcon = const SizedBox(
+        leadingIcon = SizedBox(
           width: 18,
           height: 18,
-          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryDark),
+          child: CircularProgressIndicator(strokeWidth: 2, color: primaryColor),
         );
         isClickable = false;
-        onTapAction = null; // Không cho bấm khi đang tìm
+        onTapAction = null;
         break;
       case BranchStatus.foundNearest:
         displayText = branch?.name ?? "Chọn chi nhánh";
-        leadingIcon = const Icon(Icons.location_on, size: 18, color: AppColors.primaryDark);
+        leadingIcon = Icon(Icons.location_on, size: 18, color: primaryColor);
         break;
-    // --- TRƯỜNG HỢP BranchStatus.tooFar ĐÃ ĐƯỢC XÓA ---
       case BranchStatus.permissionDenied:
         displayText = message.isNotEmpty ? message : "Hãy cấp quyền vị trí";
-        leadingIcon = const Icon(Icons.location_off, size: 18, color: Colors.red);
-        // Khi bị từ chối, bấm vào sẽ yêu cầu mở cài đặt
+        leadingIcon = Icon(Icons.location_off, size: 18, color: errorColor);
         onTapAction = () => _showPermissionDialog(context);
         break;
       case BranchStatus.error:
-      // Khi lỗi, bấm vào sẽ thử lại
         displayText = message.isNotEmpty ? message : "Lỗi! Bấm để thử lại";
-        leadingIcon = const Icon(Icons.error_outline, size: 18, color: Colors.red);
+        leadingIcon = Icon(Icons.error_outline, size: 18, color: errorColor);
         onTapAction = () => context.read<BranchProvider>().retryInitialization();
         break;
       case BranchStatus.notSelected:
         displayText = message.isNotEmpty ? message : "Chọn chi nhánh phục vụ";
-        leadingIcon = const Icon(Icons.storefront, size: 18, color: AppColors.primaryDark);
+        leadingIcon = Icon(Icons.storefront, size: 18, color: primaryColor);
         break;
     }
 
@@ -103,26 +104,29 @@ class _CustomAppBarState extends State<CustomAppBar> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.25),
+                // SỬA MÀU #1: Dùng màu xanh nhạt từ constants
+                color: AppColors.primaryLight.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  leadingIcon, // Icon thay đổi linh hoạt
+                  leadingIcon,
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      displayText, // Text thay đổi linh hoạt
-                      style: const TextStyle(
-                        color: AppColors.black,
+                      displayText,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        // SỬA MÀU #2: Dùng màu text từ constants
+                        color: AppColors.textDark,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Icon(Icons.keyboard_arrow_down, size: 18, color: AppColors.black),
+                  // SỬA MÀU #3: Dùng màu text từ constants
+                  const Icon(Icons.keyboard_arrow_down, size: 18, color: AppColors.textDark),
                 ],
               ),
             ),
@@ -133,10 +137,8 @@ class _CustomAppBarState extends State<CustomAppBar> {
           children: [
             _iconButton(Icons.search, () => setState(() => isSearching = true)),
             const SizedBox(width: 12),
-            // --- NÚT THÔNG BÁO REALTIME ---
             StreamBuilder<int>(
-              stream:
-              NotificationService.getUnreadCount(), // Lắng nghe số lượng tin chưa đọc
+              stream: NotificationService.getUnreadCount(),
               builder: (context, snapshot) {
                 int unreadCount = snapshot.data ?? 0;
                 return _iconButton(
@@ -144,16 +146,13 @@ class _CustomAppBarState extends State<CustomAppBar> {
                       () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const NotificationScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const NotificationScreen()),
                     );
                   },
                   badge: unreadCount,
                 );
               },
             ),
-            // -----------------------------
           ],
         ),
       ],
@@ -170,16 +169,17 @@ class _CustomAppBarState extends State<CustomAppBar> {
             decoration: InputDecoration(
               hintText: "Tìm kiếm sản phẩm...",
               filled: true,
-              fillColor: Colors.white,
+              // SỬA MÀU #4: Dùng màu nền từ constants
+              fillColor: AppColors.surface,
+              hintStyle: const TextStyle(color: AppColors.textGrey),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
                 borderSide: BorderSide.none,
               ),
-              prefixIcon: const Icon(Icons.search, color: AppColors.buttonDark),
+              // SỬA MÀU #5: Dùng màu chủ đạo từ constants
+              prefixIcon: const Icon(Icons.search, color: AppColors.primary),
             ),
-            onChanged: (value) {
-              widget.onSearch(value);
-            },
+            onChanged: widget.onSearch,
           ),
         ),
         const SizedBox(width: 12),
@@ -189,7 +189,8 @@ class _CustomAppBarState extends State<CustomAppBar> {
             _controller.clear();
             widget.onSearch('');
           }),
-          child: const Icon(Icons.close, color: AppColors.buttonDark),
+          // SỬA MÀU #6: Dùng màu chủ đạo từ constants
+          child: const Icon(Icons.close, color: AppColors.primary),
         ),
       ],
     );
@@ -204,10 +205,12 @@ class _CustomAppBarState extends State<CustomAppBar> {
           child: Container(
             padding: const EdgeInsets.all(10),
             decoration: const BoxDecoration(
-              color: Colors.white,
+              // SỬA MÀU #7: Dùng màu nền từ constants
+              color: AppColors.surface,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 22, color: AppColors.buttonDark),
+            // SỬA MÀU #8: Dùng màu chủ đạo từ constants
+            child: Icon(icon, size: 22, color: AppColors.primary),
           ),
         ),
         if (badge > 0)
@@ -217,7 +220,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
             child: Container(
               padding: const EdgeInsets.all(4),
               decoration: const BoxDecoration(
-                color: Colors.red,
+                color: AppColors.error, // Dùng màu lỗi từ constants
                 shape: BoxShape.circle,
               ),
               child: Text(
@@ -234,27 +237,28 @@ class _CustomAppBarState extends State<CustomAppBar> {
     );
   }
 
-  // MODAL CHỌN CHI NHÁNH ĐÃ ĐƯỢC ĐƠN GIẢN HÓA
   void _showBranchPicker(BuildContext context) {
     final provider = context.read<BranchProvider>();
     final allBranches = provider.allBranches;
     final selectedBranchId = provider.selectedBranch?.id;
+    final theme = Theme.of(context);
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      // SỬA MÀU #9: Dùng màu nền từ constants
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) {
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  "Chọn chi nhánh gần bạn", // --- XÓA ĐIỀU KIỆN KIỂM TRA "tooFar" ---
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                // Sử dụng style từ theme
+                child: Text("Chọn chi nhánh gần bạn", style: theme.textTheme.headlineSmall),
               ),
               const Divider(height: 1),
               Flexible(
@@ -265,14 +269,19 @@ class _CustomAppBarState extends State<CustomAppBar> {
                     final branch = allBranches[index];
                     final isSelected = branch.id == selectedBranchId;
                     return ListTile(
-                      title: Text(branch.name, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-                      subtitle: Text(branch.address),
+                      title: Text(
+                        branch.name,
+                        style: TextStyle(
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            color: isSelected ? AppColors.primary : AppColors.textDark),
+                      ),
+                      subtitle: Text(branch.address, style: const TextStyle(color: AppColors.textGrey)),
                       trailing: isSelected
-                          ? const Icon(Icons.check_circle, color: AppColors.primaryDark)
+                      // SỬA MÀU #10: Dùng màu chủ đạo từ constants
+                          ? const Icon(Icons.check_circle, color: AppColors.primary)
                           : null,
                       onTap: () {
                         provider.selectBranch(branch);
-
                         Navigator.of(ctx).pop();
                       },
                     );
@@ -286,15 +295,13 @@ class _CustomAppBarState extends State<CustomAppBar> {
     );
   }
 
-  // HÀM XỬ LÝ KHI NGƯỜI DÙNG TỪ CHỐI QUYỀN
   void _showPermissionDialog(BuildContext context) {
+    // AlertDialog sẽ tự động lấy style từ theme chung trong main.dart
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Cần quyền truy cập vị trí"),
-        content: const Text(
-          "Bồng Biêng cần vị trí của bạn để tìm chi nhánh gần nhất. Bạn có muốn mở cài đặt để cấp quyền không?",
-        ),
+        content: const Text("Bồng Biêng cần vị trí của bạn để tìm chi nhánh gần nhất. Bạn có muốn mở cài đặt để cấp quyền không?"),
         actions: [
           TextButton(child: const Text("Để sau"), onPressed: () => Navigator.of(ctx).pop()),
           TextButton(

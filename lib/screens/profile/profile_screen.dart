@@ -1,37 +1,119 @@
 // lib/screens/profile/profile_screen.dart
+
+import 'package:bongbieng_app/models/user_model.dart'; // SỬA: Import UserModel
+import 'package:bongbieng_app/screens/profile/edit_profile_screen.dart';
+import 'package:bongbieng_app/providers/auth_provider.dart';
 import 'package:bongbieng_app/utils/constants.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  void _handleLogout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Xác nhận đăng xuất'),
+          content: const Text('Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Hủy', style: TextStyle(color: AppColors.textGrey)),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: AppColors.error.withOpacity(0.1),
+              ),
+              child: const Text('Đăng xuất', style: TextStyle(color: AppColors.error)),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                Provider.of<AuthProvider>(context, listen: false).signOut();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _changeProfilePicture(BuildContext context) async {
+    final authProvider = context.read<AuthProvider>();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Đang xử lý...')),
+    );
+
+    final success = await authProvider.updateProfilePicture();
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success
+              ? 'Cập nhật ảnh đại diện thành công!'
+              : (authProvider.errorMessage ?? 'Tải ảnh lên thất bại.')),
+          backgroundColor: success ? AppColors.success : AppColors.error,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final authProvider = context.watch<AuthProvider>();
+    // SỬA: Lấy UserModel từ provider
+    final UserModel? user = authProvider.user;
+
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(title: const Text("Tài khoản của tôi")),
+        body: const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+      );
+    }
+
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        elevation: 0,
-        //title: const Text("Hồ sơ"),
+        backgroundColor: AppColors.primaryLight,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 20),
         child: Column(
           children: [
             const SizedBox(height: 24),
-
-            // === 1. AVATAR + TÊN + SĐT ===
-            _buildUserHeader(),
-
-            const SizedBox(height: 24),
-
-            // === 2. SECTION "TÔI" ===
+            _buildUserHeader(
+              context,
+              user, // Truyền UserModel
+              onCameraTap: () => _changeProfilePicture(context),
+            ),
+            const SizedBox(height: 32),
             _buildSection(
+              context: context,
               title: "Tôi",
               items: [
-                _MenuItem(icon: Icons.edit, label: "Chỉnh sửa hồ sơ"),
                 _MenuItem(
-                  icon: Icons.star,
-                  label: "Hạng Thành viên Bạn mới",
-                  subtitle: "10 bông nữa lên Bạc",
+                  icon: Icons.edit_outlined,
+                  label: "Chỉnh sửa hồ sơ",
+                  onTap: () {
+                    // SỬA: Điều hướng và truyền UserModel hiện tại sang
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => EditProfileScreen(currentUser: user)),
+                    );
+                  },
+                ),
+                _MenuItem(
+                  icon: Icons.workspace_premium_outlined,
+                  label: "Hạng Thành viên: Mới",
+                  subtitle: "Sắp lên hạng Bạc",
                   leading: Image.asset(
                     'assets/images/hoa.jpg',
                     width: 28,
@@ -39,149 +121,157 @@ class ProfileScreen extends StatelessWidget {
                     errorBuilder: (_, __, ___) => const Icon(Icons.star, size: 28, color: Colors.amber),
                   ),
                 ),
-                _MenuItem(icon: Icons.airplane_ticket, label: "Voucher của tôi"),
-                _MenuItem(icon: Icons.card_giftcard, label: "Giải thưởng Mini Game"),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // === 3. SECTION "KHÁC" – ĐÃ THÊM "ĐĂNG XUẤT" VÀO ĐÂY ===
-            _buildSection(
-              title: "Khác",
-              items: [
-                _MenuItem(icon: Icons.settings, label: "Cài đặt"),
-                _MenuItem(icon: Icons.star, label: "Tích bông"),
-                _MenuItem(icon: Icons.policy, label: "Chính sách bảo mật"),
-                _MenuItem(icon: Icons.feedback, label: "Phản hồi/Góp ý"),
-                _MenuItem(icon: Icons.history, label: "Lịch sử tích bông"),
-                _MenuItem(icon: Icons.lock, label: "Đổi mật khẩu"),
-                // ĐĂNG XUẤT – NẰM CUỐI CÙNG, GIỐNG CÁC MỤC KHÁC
                 _MenuItem(
-                  icon: Icons.logout,
-                  label: "Đăng xuất",
+                  icon: Icons.airplane_ticket_outlined,
+                  label: "Voucher của tôi",
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Đã đăng xuất thành công!")),
+                      const SnackBar(content: Text('Chức năng này sẽ được xử lý ở Bottom Navigation Bar.')),
                     );
-                    // TODO: Xử lý đăng xuất thật ở đây
                   },
                 ),
               ],
             ),
-
-            const SizedBox(height: 100), // Để scroll xuống thấy nút đăng xuất
+            const SizedBox(height: 16),
+            _buildSection(
+              context: context,
+              title: "Khác",
+              items: [
+                _MenuItem(icon: Icons.settings_outlined, label: "Cài đặt"),
+                _MenuItem(icon: Icons.shield_outlined, label: "Chính sách bảo mật"),
+                _MenuItem(icon: Icons.feedback_outlined, label: "Gửi phản hồi"),
+                _MenuItem(icon: Icons.history_outlined, label: "Lịch sử điểm"),
+                _MenuItem(
+                  icon: Icons.logout,
+                  label: "Đăng xuất",
+                  isDestructive: true,
+                  onTap: () => _handleLogout(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 40),
+            Text(
+              "Phiên bản 1.0.0",
+              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textLight),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // HEADER: AVATAR + TÊN + SĐT
-  Widget _buildUserHeader() {
+  // SỬA: Hàm này nhận UserModel
+  Widget _buildUserHeader(BuildContext context, UserModel user, {required VoidCallback onCameraTap}) {
+    final theme = Theme.of(context);
+    // SỬA: Ưu tiên phone từ UserModel, nếu không có thì mới đến email
+    final String contactInfo = user.phone.isNotEmpty ? user.phone : user.email;
+
     return Column(
       children: [
         Stack(
+          alignment: Alignment.bottomRight,
           children: [
             CircleAvatar(
-              radius: 50,
-              backgroundColor: Colors.white,
+              radius: 52,
+              backgroundColor: AppColors.primary.withOpacity(0.2),
               child: CircleAvatar(
-                radius: 47,
-                backgroundColor: Colors.grey[300],
-                child: const Icon(Icons.person, size: 55, color: Colors.white),
+                radius: 48,
+                backgroundColor: AppColors.surface,
+                // SỬA: Dùng trường 'avatar' từ UserModel
+                backgroundImage: user.avatar.isNotEmpty ? CachedNetworkImageProvider(user.avatar) : null,
+                child: user.avatar.isEmpty
+                    ? Icon(Icons.person, size: 60, color: AppColors.primary.withOpacity(0.8))
+                    : null,
               ),
             ),
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: GestureDetector(
-                onTap: () {},
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: const BoxDecoration(
-                    color: AppColors.primaryDark,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+            GestureDetector(
+              onTap: onCameraTap,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.background, width: 2),
                 ),
+                child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        const Text(
-          "Chmmm",
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.black),
+        const SizedBox(height: 16),
+        // SỬA: Dùng trường 'name' từ UserModel
+        Text(
+          user.name.isNotEmpty ? user.name : "Người dùng mới",
+          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),
-        const Text(
-          "0842666121",
-          style: TextStyle(fontSize: 14, color: Colors.grey),
-        ),
+        if (contactInfo.isNotEmpty)
+          Text(
+            contactInfo,
+            style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textGrey),
+          ),
       ],
     );
   }
 
-  // SECTION CHUNG
-  Widget _buildSection({required String title, required List<_MenuItem> items}) {
+  Widget _buildSection({required BuildContext context, required String title, required List<_MenuItem> items}) {
+    // ... (Không thay đổi)
+    final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2)),
-        ],
-      ),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text(
-              title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.black),
-            ),
+            child: Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
           ),
-          ...items.map((item) => _buildMenuItem(item)).toList(),
+          ListView.separated(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            itemCount: items.length,
+            itemBuilder: (_, index) => _buildMenuItem(context, items[index]),
+            separatorBuilder: (_, __) => const Divider(height: 1, indent: 56, endIndent: 16, color: AppColors.background),
+          ),
         ],
       ),
     );
   }
 
-  // ITEM TRONG SECTION
-  Widget _buildMenuItem(_MenuItem item) {
+  Widget _buildMenuItem(BuildContext context, _MenuItem item) {
+    // ... (Không thay đổi)
+    final theme = Theme.of(context);
+    final color = item.isDestructive ? AppColors.error : AppColors.textDark;
     return ListTile(
+      onTap: item.onTap,
       leading: item.leading ??
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: (item.isDestructive ? AppColors.error : AppColors.primary).withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(item.icon, color: AppColors.black, size: 20),
+            child: Icon(item.icon, color: item.isDestructive ? AppColors.error : AppColors.primary, size: 22),
           ),
-      title: Text(
-        item.label,
-        style: const TextStyle(color: AppColors.black, fontWeight: FontWeight.w500),
-      ),
+      title: Text(item.label, style: theme.textTheme.bodyLarge?.copyWith(color: color, fontWeight: FontWeight.w500)),
       subtitle: item.subtitle != null
-          ? Text(item.subtitle!, style: const TextStyle(fontSize: 13, color: Colors.grey))
+          ? Text(item.subtitle!, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textGrey))
           : null,
-      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-      onTap: item.onTap ?? () {},
+      trailing: item.isDestructive ? null : const Icon(Icons.chevron_right, color: AppColors.textGrey, size: 20),
     );
   }
 }
 
-// MODEL ITEM
 class _MenuItem {
+  // ... (Không thay đổi)
   final IconData icon;
   final String label;
   final String? subtitle;
   final Widget? leading;
   final VoidCallback? onTap;
+  final bool isDestructive;
 
   _MenuItem({
     required this.icon,
@@ -189,5 +279,6 @@ class _MenuItem {
     this.subtitle,
     this.leading,
     this.onTap,
+    this.isDestructive = false,
   });
 }
