@@ -109,7 +109,7 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
         height: double.infinity,
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: const AssetImage('assets/images/logo/hoa_logo.jpg'),
+            image: const AssetImage('assets/images/logo.png'),
             fit: BoxFit.cover,
             colorFilter: ColorFilter.mode(
               AppColors.primary.withOpacity(0.1),

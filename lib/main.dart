@@ -2,22 +2,19 @@
 import 'package:bongbieng_app/providers/auth_provider.dart';
 import 'package:bongbieng_app/providers/cart_provider.dart';
 import 'package:bongbieng_app/providers/product_provider.dart';
-import 'package:bongbieng_app/screens/auth/login_screen.dart';
+import 'package:bongbieng_app/screens/auth/welcome_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:bongbieng_app/models/product_model.dart';
 import 'package:bongbieng_app/providers/branch_provider.dart';
 import 'package:bongbieng_app/screens/cart/cart_screen.dart';
 import 'package:bongbieng_app/screens/voucher/voucher_screen.dart';
 import 'package:bongbieng_app/screens/home/home_screen.dart';
-import 'package:bongbieng_app/screens/onboarding/onboarding_screen.dart';
 import 'package:bongbieng_app/screens/products/product_detail_screen.dart';
 import 'package:bongbieng_app/screens/profile/profile_screen.dart';
 import 'package:bongbieng_app/widgets/bottom_nav_bar.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'firebase_options.dart';
 import 'utils/constants.dart';
 
@@ -26,41 +23,33 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  // SỬA: Không cần runApp ở đây nữa, sẽ gọi trong MultiProvider
   runApp(const BongBiengApp());
 }
 
-// === SỬA LẠI TOÀN BỘ WIDGET NÀY ===
 class BongBiengApp extends StatelessWidget {
   const BongBiengApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // MultiProvider phải là widget gốc
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => BranchProvider()),
         ChangeNotifierProvider(create: (context) => ProductProvider()),
-        // CartProvider sẽ phụ thuộc vào AuthProvider và ProductProvider
         ChangeNotifierProxyProvider2<AuthProvider, ProductProvider, CartProvider>(
           create: (context) => CartProvider(),
           update: (context, auth, products, previousCart) {
             final cart = previousCart ?? CartProvider();
-            // Cập nhật ProductProvider cho CartProvider để nó có thể tính giá
             cart.update(products);
-            // Nếu người dùng đăng nhập, tải giỏ hàng của họ
             if (auth.isAuthenticated) {
               cart.fetchCartItems();
             } else {
-              // Nếu đăng xuất, dọn dẹp giỏ hàng trên UI
               cart.clearCartOnSignOut();
             }
             return cart;
           },
         ),
       ],
-      // MaterialApp phải là con của MultiProvider
       child: MaterialApp(
         title: 'Bông Biêng App',
         debugShowCheckedModeBanner: false,
@@ -69,6 +58,7 @@ class BongBiengApp extends StatelessWidget {
           scaffoldBackgroundColor: AppColors.background,
           fontFamily: 'Inter',
           useMaterial3: true,
+          // ... (phần theme của bạn giữ nguyên)
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
               elevation: 0,
@@ -132,62 +122,33 @@ class BongBiengApp extends StatelessWidget {
   }
 }
 
-// (AuthWrapper và MainShell)
-class AuthWrapper extends StatefulWidget {
+// === SỬA LẠI TOÀN BỘ AuthWrapper ===
+class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
   @override
-  State<AuthWrapper> createState() => _AuthWrapperState();
-}
-
-class _AuthWrapperState extends State<AuthWrapper> {
-  late Future<bool> _hasSeenOnboardingFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _hasSeenOnboardingFuture = _checkIfOnboardingCompleted();
-  }
-
-  Future<bool> _checkIfOnboardingCompleted() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('hasSeenOnboarding') ?? false;
-  }
-
-  void _onOnboardingComplete() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('hasSeenOnboarding', true);
-    setState(() {
-      _hasSeenOnboardingFuture = Future.value(true);
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-
-    if (authProvider.isAuthenticated) {
-      return const MainShell();
-    }
-
-    return FutureBuilder<bool>(
-      future: _hasSeenOnboardingFuture,
+    // Dùng StreamBuilder để lắng nghe trạng thái đăng nhập từ Firebase
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
+        // Trong khi chờ kết nối, hiển thị màn hình loading
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
-        final hasSeenOnboarding = snapshot.data ?? false;
-
-        if (hasSeenOnboarding) {
-          return const LoginScreen();
-        } else {
-          return OnboardingScreen(onCompleted: _onOnboardingComplete);
+        // Nếu snapshot có dữ liệu (user != null), nghĩa là đã đăng nhập
+        if (snapshot.hasData) {
+          return const MainShell();
         }
+
+        // Nếu không có dữ liệu, nghĩa là chưa đăng nhập, hiển thị WelcomeScreen
+        return const WelcomeScreen();
       },
     );
   }
 }
+
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});

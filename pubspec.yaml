@@ -84,7 +84,8 @@ flutter:
     - assets/images/main_banner.jpg
     - assets/images/hoa.jpg
     - assets/images/logo/
-    - assets/images/onboarding/
+    - assets/images/welcome_background.jpg
+    - assets/images/logo.png
 
 
 
