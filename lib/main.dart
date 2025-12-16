@@ -23,11 +23,19 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const BongBiengApp());
+  final User? currentUser = FirebaseAuth.instance.currentUser;
+
+  final Widget startScreen = (currentUser != null)
+      ? const MainShell()
+      : const WelcomeScreen();
+
+  runApp(BongBiengApp(startScreen: startScreen));
 }
 
 class BongBiengApp extends StatelessWidget {
-  const BongBiengApp({super.key});
+  final Widget startScreen; // Nhận màn hình bắt đầu từ main
+
+  const BongBiengApp({super.key, required this.startScreen});
 
   @override
   Widget build(BuildContext context) {
@@ -36,16 +44,21 @@ class BongBiengApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => BranchProvider()),
         ChangeNotifierProvider(create: (context) => ProductProvider()),
+        // SỬA ĐOẠN NÀY:
         ChangeNotifierProxyProvider2<AuthProvider, ProductProvider, CartProvider>(
           create: (context) => CartProvider(),
           update: (context, auth, products, previousCart) {
             final cart = previousCart ?? CartProvider();
             cart.update(products);
+
+            // CHỈ GỌI FETCH KHI CÓ USER, KHÔNG GỌI CLEAR Ở ĐÂY ĐỂ TRÁNH LỖI UI
+            // Việc clear giỏ hàng sẽ được xử lý ở bước Đăng xuất
             if (auth.isAuthenticated) {
-              cart.fetchCartItems();
-            } else {
-              cart.clearCartOnSignOut();
+              // Đảm bảo fetchCartItems không gọi notifyListeners ngay lập tức hoặc đã được xử lý bất đồng bộ
+              // Tốt nhất là dùng cờ kiểm tra bên trong CartProvider để tránh gọi lặp lại
+              if (cart.items.isEmpty) cart.fetchCartItems();
             }
+
             return cart;
           },
         ),
@@ -116,39 +129,11 @@ class BongBiengApp extends StatelessWidget {
           }
           return null;
         },
-        home: const AuthWrapper(),
+        home: startScreen,
       ),
     );
   }
 }
-
-// === SỬA LẠI TOÀN BỘ AuthWrapper ===
-class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    // Dùng StreamBuilder để lắng nghe trạng thái đăng nhập từ Firebase
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        // Trong khi chờ kết nối, hiển thị màn hình loading
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        }
-
-        // Nếu snapshot có dữ liệu (user != null), nghĩa là đã đăng nhập
-        if (snapshot.hasData) {
-          return const MainShell();
-        }
-
-        // Nếu không có dữ liệu, nghĩa là chưa đăng nhập, hiển thị WelcomeScreen
-        return const WelcomeScreen();
-      },
-    );
-  }
-}
-
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});

@@ -5,20 +5,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:cloudinary_public/cloudinary_public.dart';
+import 'cloudinary_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  final CloudinaryPublic cloudinary = CloudinaryPublic(
-    'dp4qtd5uz',
-    'BongBieng_App',
-    cache: false,
-  );
-
   User? get currentUser => _auth.currentUser;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
+
+  final CloudinaryService _cloudinaryService = CloudinaryService();
+  final ImagePicker _picker = ImagePicker();
+
 
   Future<UserCredential?> signInWithEmailAndPassword({
     required String email,
@@ -41,13 +39,15 @@ class AuthService {
     required String fullName,
     String? phoneNumber,
   }) async {
-    // ... (Giữ nguyên)
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      await credential.user?.updateDisplayName(fullName);
+      if (credential.user != null) {
+        await credential.user!.updateDisplayName(fullName);
+        await credential.user!.reload(); // Reload để xác nhận server đã nhận tên
+      }
       await _firestore.collection('users').doc(credential.user?.uid).set({
         'name': fullName,
         'email': email,
@@ -65,7 +65,6 @@ class AuthService {
   }
 
   Future<UserCredential?> signInWithGoogle() async {
-    // ... (Giữ nguyên)
     try {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) throw 'Đăng nhập Google đã bị hủy';
@@ -178,54 +177,31 @@ class AuthService {
     }
   }
 
-  Future<String> updateProfilePicture() async {
-    // ... (Giữ nguyên)
-    final User? currentUser = _auth.currentUser;
-    if (currentUser == null) {
-      throw Exception("Vui lòng đăng nhập để thực hiện chức năng này.");
-    }
-
-    final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 70,
-      maxWidth: 800,
-    );
-
-    if (image == null) {
-      throw Exception("Bạn chưa chọn ảnh nào.");
-    }
-
-    try {
-      CloudinaryResponse response = await cloudinary.uploadFile(
-        CloudinaryFile.fromFile(
-          image.path,
-          resourceType: CloudinaryResourceType.Image,
-          folder: 'bongbieng_avatars',
-          publicId: currentUser.uid,
-        ),
-      );
-
-      final String secureUrl = response.secureUrl;
-
-      await currentUser.updatePhotoURL(secureUrl);
-      await _firestore.collection('users').doc(currentUser.uid).update({
-        'avatar': secureUrl,
-      });
-
-      return secureUrl;
-    } catch (e) {
-      print('LỖI CLOUDINARY: ${e.toString()}');
-      throw Exception("Tải ảnh lên thất bại. Vui lòng kiểm tra lại Cloud Name và Upload Preset.");
-    }
-  }
 
   Future<void> signOut() async {
-    // ... (Giữ nguyên)
-    await GoogleSignIn().signOut();
-    await FacebookAuth.instance.logOut();
+    final user = _auth.currentUser;
+
+    if (user != null) {
+      for (final info in user.providerData) {
+        if (info.providerId == 'google.com') {
+          try {
+            await GoogleSignIn().signOut();
+          } catch (_) {
+            // ignore lỗi web thiếu clientId
+          }
+        }
+
+        if (info.providerId == 'facebook.com') {
+          try {
+            await FacebookAuth.instance.logOut();
+          } catch (_) {}
+        }
+      }
+    }
+
     await _auth.signOut();
   }
+
 
   Future<void> resetPassword(String email) async {
     // ... (Giữ nguyên)
@@ -235,6 +211,36 @@ class AuthService {
       throw _handleAuthException(e);
     }
   }
+
+  Future<void> uploadAvatar() async {
+    final User? user = _auth.currentUser;
+    if (user == null) throw Exception('Chưa đăng nhập');
+
+    // 1. Chọn ảnh
+    final XFile? pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+    if (pickedFile == null) throw Exception('Người dùng huỷ chọn ảnh');
+
+    // Upload Cloudinary
+    final bytes = await pickedFile.readAsBytes();
+
+    final imageUrl = await _cloudinaryService.uploadAvatarBytes(
+      bytes,
+      pickedFile.name,
+      user.uid,
+    );
+
+    await user.updatePhotoURL(imageUrl);
+
+    await _firestore.collection('users').doc(user.uid).update({
+      'avatar': imageUrl,
+    });
+
+  }
+
+
 
   String _handleAuthException(FirebaseAuthException e) {
     // ... (Giữ nguyên)

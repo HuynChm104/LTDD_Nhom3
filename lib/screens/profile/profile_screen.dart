@@ -8,6 +8,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../providers/cart_provider.dart';
+import '../auth/welcome_screen.dart';
+
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -30,9 +33,20 @@ class ProfileScreen extends StatelessWidget {
                 backgroundColor: AppColors.error.withOpacity(0.1),
               ),
               child: const Text('Đăng xuất', style: TextStyle(color: AppColors.error)),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(dialogContext).pop();
-                Provider.of<AuthProvider>(context, listen: false).signOut();
+                // Đăng xuất và xóa giỏ hàng
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                final cartProvider = Provider.of<CartProvider>(context, listen: false);
+                cartProvider.clearCartOnSignOut();
+                await authProvider.signOut();
+                // Đổi sang màn hình đăng nhập
+                if (context.mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+                        (Route<dynamic> route) => false,
+                  );
+                }
               },
             ),
           ],
@@ -48,7 +62,7 @@ class ProfileScreen extends StatelessWidget {
       const SnackBar(content: Text('Đang xử lý...')),
     );
 
-    final success = await authProvider.updateProfilePicture();
+    final success = await authProvider.uploadImage();
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -63,18 +77,18 @@ class ProfileScreen extends StatelessWidget {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final authProvider = context.watch<AuthProvider>();
-    // SỬA: Lấy UserModel từ provider
-    final UserModel? user = authProvider.user;
+    final user = authProvider.user;
 
     if (user == null) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(title: const Text("Tài khoản của tôi")),
-        body: const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
       );
     }
 
@@ -175,10 +189,11 @@ class ProfileScreen extends StatelessWidget {
               radius: 52,
               backgroundColor: AppColors.primary.withOpacity(0.2),
               child: CircleAvatar(
+                key: ValueKey(user.avatar),
                 radius: 48,
                 backgroundColor: AppColors.surface,
                 // SỬA: Dùng trường 'avatar' từ UserModel
-                backgroundImage: user.avatar.isNotEmpty ? CachedNetworkImageProvider(user.avatar) : null,
+                backgroundImage: CachedNetworkImageProvider(user.avatar),
                 child: user.avatar.isEmpty
                     ? Icon(Icons.person, size: 60, color: AppColors.primary.withOpacity(0.8))
                     : null,

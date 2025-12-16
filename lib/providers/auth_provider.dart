@@ -1,4 +1,5 @@
 // lib/providers/auth_provider.dart
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,6 +9,9 @@ import '../models/user_model.dart';
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  bool _isAuthChecking = true; // Trạng thái đang kiểm tra đăng nhập lúc mở app
+  bool get isAuthChecking => _isAuthChecking;
 
   UserModel? _currentUser;
   bool _isLoading = false;
@@ -26,45 +30,63 @@ class AuthProvider extends ChangeNotifier {
   Future<void> _onAuthStateChanged(User? firebaseUser) async {
     if (firebaseUser == null) {
       _currentUser = null;
-    } else {
-      // KIỂM TRA XEM ĐÂY CÓ PHẢI LÀ NGƯỜI DÙNG MỚI ĐƯỢC TẠO RA KHÔNG
-      final isNewUser = firebaseUser.metadata.creationTime == firebaseUser.metadata.lastSignInTime;
-
-      // NẾU LÀ NGƯỜI DÙNG MỚI, THÊM MỘT ĐỘ TRỄ NHỎ
-      // Điều này để đảm bảo Cloud Firestore có đủ thời gian để ghi document mới
-      // sau khi hàm register trong AuthService được gọi.
-      if (isNewUser) {
-        await Future.delayed(const Duration(seconds: 1));
-      }
-
-      try {
-        final doc = await _firestore.collection('users').doc(firebaseUser.uid).get(
-          // Luôn lấy dữ liệu mới nhất từ server, không dùng cache
-          const GetOptions(source: Source.server),
-        );
-
-        if (doc.exists) {
-          _currentUser = UserModel.fromFirestore(doc);
-        } else {
-          // Trường hợp này bây giờ rất hiếm khi xảy ra, nhưng vẫn giữ lại để phòng ngừa
-          _currentUser = UserModel(
-            id: firebaseUser.uid,
-            name: firebaseUser.displayName ?? '',
-            email: firebaseUser.email ?? '',
-            phone: firebaseUser.phoneNumber ?? '',
-            avatar: firebaseUser.photoURL ?? '',
-            address: '',
-            vouchers: [],
-            favoriteBranch: '',
-            createdAt: firebaseUser.metadata.creationTime ?? DateTime.now(),
-          );
-        }
-      } catch (e) {
-        print('Lỗi khi lấy dữ liệu người dùng từ Firestore: $e');
-        _currentUser = null;
-      }
+      notifyListeners();
+      return;
     }
-     notifyListeners();
+
+    try {
+      DocumentSnapshot? doc;
+
+      final isNewUser = firebaseUser.metadata.creationTime != null &&
+          firebaseUser.metadata.lastSignInTime != null &&
+          (firebaseUser.metadata.creationTime!.difference(firebaseUser.metadata.lastSignInTime!).inSeconds.abs() < 10);
+
+      if (isNewUser) {
+        int retries = 3;
+        while (retries > 0) {
+          final tempDoc = await _firestore.collection('users').doc(firebaseUser.uid).get(
+            const GetOptions(source: Source.server),
+          );
+
+          if (tempDoc.exists) {
+            doc = tempDoc;
+            break; // Đã tìm thấy, thoát vòng lặp
+          }
+          await Future.delayed(const Duration(seconds: 1)); // Đợi 1s rồi thử lại
+          retries--;
+        }
+      }
+
+      // 3. Nếu không phải user mới hoặc đã hết số lần thử mà chưa có doc
+      doc ??= await _firestore.collection('users').doc(firebaseUser.uid).get();
+
+      if (doc.exists) {
+        _currentUser = UserModel.fromFirestore(doc);
+      } else {
+        // 4. FALLBACK: Nếu Firestore vẫn chưa có, load từ Auth
+        // QUAN TRỌNG: Reload để đảm bảo lấy được displayName mới nhất từ Register
+        await firebaseUser.reload();
+        final updatedUser = FirebaseAuth.instance.currentUser;
+
+        _currentUser = UserModel(
+          id: updatedUser?.uid ?? '',
+          // Ưu tiên lấy tên từ Auth nếu Firestore chưa có
+          name: updatedUser?.displayName ?? '',
+          email: updatedUser?.email ?? '',
+          phone: updatedUser?.phoneNumber ?? '',
+          avatar: updatedUser?.photoURL ?? '',
+          address: '',
+          vouchers: [],
+          favoriteBranch: '',
+          createdAt: DateTime.now(),
+        );
+      }
+    } catch (e) {
+      debugPrint('Lỗi tải user: $e');
+      _currentUser = null;
+    }
+    _isAuthChecking = false;
+    notifyListeners();
   }
 
   Future<bool> updateUserProfile({
@@ -199,26 +221,13 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateProfilePicture() async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      await _authService.updateProfilePicture();
-      await _safeReloadUserAndUpdate(); // Tải lại dữ liệu mới
-      return true;
-    } catch (e) {
-      _handleAuthError(e);
-      return false;
-    }
-  }
 
   // --- CÁC HÀM KHÁC ---
   Future<void> signOut() async {
-    await _authService.signOut();
     _currentUser = null;
     notifyListeners();
+
+    await _authService.signOut();
   }
 
   Future<bool> resetPassword(String email) async {
@@ -235,6 +244,34 @@ class AuthProvider extends ChangeNotifier {
       return false;
     }
   }
+
+  Future<bool> uploadImage() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final oldAvatar = _currentUser?.avatar;
+
+      await _authService.uploadAvatar();
+
+      if (oldAvatar != null && oldAvatar.isNotEmpty) {
+        await CachedNetworkImage.evictFromCache(oldAvatar);
+      }
+
+      await _onAuthStateChanged(_authService.currentUser);
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
 
   void clearError() {
     _errorMessage = null;
