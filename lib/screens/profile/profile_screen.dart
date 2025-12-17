@@ -3,10 +3,14 @@
 import 'package:bongbieng_app/models/user_model.dart'; // SỬA: Import UserModel
 import 'package:bongbieng_app/screens/profile/edit_profile_screen.dart';
 import 'package:bongbieng_app/providers/auth_provider.dart';
+import 'package:bongbieng_app/screens/profile/setting_screen.dart';
 import 'package:bongbieng_app/utils/constants.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:bongbieng_app/screens/profile/privacy_policy_dialog.dart';
+import 'package:bongbieng_app/screens/profile/loyalty_screen.dart';
+import 'package:bongbieng_app/screens/profile/feedback_dialog.dart';
 
 import '../../providers/cart_provider.dart';
 import '../auth/welcome_screen.dart';
@@ -134,6 +138,12 @@ class ProfileScreen extends StatelessWidget {
                     height: 28,
                     errorBuilder: (_, __, ___) => const Icon(Icons.star, size: 28, color: Colors.amber),
                   ),
+                  onTap: (){
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoyaltyScreen()),
+                    );
+                  }
                 ),
                 _MenuItem(
                   icon: Icons.airplane_ticket_outlined,
@@ -151,9 +161,34 @@ class ProfileScreen extends StatelessWidget {
               context: context,
               title: "Khác",
               items: [
-                _MenuItem(icon: Icons.settings_outlined, label: "Cài đặt"),
-                _MenuItem(icon: Icons.shield_outlined, label: "Chính sách bảo mật"),
-                _MenuItem(icon: Icons.feedback_outlined, label: "Gửi phản hồi"),
+                _MenuItem(
+                    icon: Icons.settings_outlined,
+                    label: "Cài đặt",
+                    onTap: (){
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                      );
+                    }
+                ),
+                _MenuItem(
+                    icon: Icons.shield_outlined,
+                    label: "Chính sách bảo mật",
+                     onTap: () {
+                      // Gọi hàm hiển thị dialog
+                       showDialog(context: context,
+                                  builder: (context) => const PrivacyPolicyDialog(),
+                       );
+                     }
+                ),
+                _MenuItem(
+                    icon: Icons.feedback_outlined,
+                    label: "Gửi phản hồi",
+                    onTap: (){
+                      showDialog(context: context, builder: (context) => const FeedbackDialog(),
+                      );
+                    }
+                ),
                 _MenuItem(icon: Icons.history_outlined, label: "Lịch sử điểm"),
                 _MenuItem(
                   icon: Icons.logout,
@@ -256,20 +291,28 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildMenuItem(BuildContext context, _MenuItem item) {
-    // ... (Không thay đổi)
     final theme = Theme.of(context);
     final color = item.isDestructive ? AppColors.error : AppColors.textDark;
     return ListTile(
       onTap: item.onTap,
-      leading: item.leading ??
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: (item.isDestructive ? AppColors.error : AppColors.primary).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(item.icon, color: item.isDestructive ? AppColors.error : AppColors.primary, size: 22),
-          ),
+      leading: Container(
+        width: 40, // Cố định chiều rộng
+        height: 40, // Cố định chiều cao
+        padding: const EdgeInsets.all(8), // Padding bên trong
+        decoration: BoxDecoration(
+          // Nếu là item có ảnh riêng thì dùng nền trắng, còn ko giữ màu mặc định
+          color: (item.leading != null)
+              ? Colors.white.withValues(alpha: 0.1)
+              : (item.isDestructive ? AppColors.error : AppColors.primary).withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        // Logic hiển thị: Nếu có ảnh riêng (leading) thì hiện ảnh, ko thì hiện Icon
+        child: item.leading ?? Icon(
+            item.icon,
+            color: item.isDestructive ? AppColors.error : AppColors.primary,
+            size: 22
+        ),
+      ),
       title: Text(item.label, style: theme.textTheme.bodyLarge?.copyWith(color: color, fontWeight: FontWeight.w500)),
       subtitle: item.subtitle != null
           ? Text(item.subtitle!, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textGrey))
