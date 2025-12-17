@@ -43,6 +43,12 @@ class AuthService {
   }) async {
     // ... (Giữ nguyên)
     try {
+      // Validate password strength
+      final passwordError = _validatePasswordStrength(password);
+      if (passwordError != null) {
+        throw Exception(passwordError);
+      }
+
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
@@ -67,7 +73,10 @@ class AuthService {
   Future<UserCredential?> signInWithGoogle() async {
     // ... (Giữ nguyên)
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        clientId: '94003824961-l26onrkkkdkmei9vsvufmdipmd8q37cr.apps.googleusercontent.com', // For Web
+      );
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) throw 'Đăng nhập Google đã bị hủy';
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
@@ -96,24 +105,46 @@ class AuthService {
   }
 
   Future<UserCredential?> signInWithFacebook() async {
-    // ... (Giữ nguyên)
     try {
       final LoginResult loginResult = await FacebookAuth.instance.login(
         permissions: ['public_profile', 'email'],
       );
-      if (loginResult.status != LoginStatus.success) throw 'Đăng nhập Facebook thất bại';
+      
+      // Kiểm tra status đăng nhập
+      if (loginResult.status == LoginStatus.cancelled) {
+        throw 'Người dùng đã hủy đăng nhập Facebook';
+      }
+      
+      if (loginResult.status == LoginStatus.failed) {
+        throw 'Đăng nhập Facebook thất bại: ${loginResult.message}';
+      }
+
+      if (loginResult.status != LoginStatus.success) {
+        throw 'Đăng nhập Facebook thất bại: ${loginResult.status}';
+      }
+
+      // Kiểm tra accessToken không null
+      if (loginResult.accessToken == null) {
+        throw 'Không thể lấy access token từ Facebook. Vui lòng thử lại.';
+      }
 
       final OAuthCredential facebookAuthCredential =
-      FacebookAuthProvider.credential(loginResult.accessToken!.token);
+          FacebookAuthProvider.credential(loginResult.accessToken!.token);
+    
       final userCredential = await _auth.signInWithCredential(facebookAuthCredential);
-      final userData = await FacebookAuth.instance.getUserData(fields: "name,email,picture.width(200)");
+      
+      // Lấy dữ liệu người dùng từ Facebook
+      final userData = await FacebookAuth.instance.getUserData(
+        fields: "name,email,picture.width(200)",
+      );
 
+      // Tạo tài khoản mới nếu là lần đầu đăng nhập
       if (userCredential.additionalUserInfo?.isNewUser ?? false) {
         await _firestore.collection('users').doc(userCredential.user?.uid).set({
-          'name': userData['name'] ?? '',
+          'name': userData['name'] ?? userCredential.user?.displayName ?? '',
           'email': userData['email'] ?? userCredential.user?.email ?? '',
-          'phone': '',
-          'avatar': userData['picture']?['data']?['url'] ?? '',
+          'phone': userCredential.user?.phoneNumber ?? '',
+          'avatar': userData['picture']?['data']?['url'] ?? userCredential.user?.photoURL ?? '',
           'address': '',
           'vouchers': [],
           'favoriteBranch': '',
@@ -121,6 +152,15 @@ class AuthService {
         }, SetOptions(merge: true));
       }
       return userCredential;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'account-exists-with-different-credential') {
+        throw 'Email này đã được sử dụng với phương thức đăng nhập khác. Vui lòng sử dụng phương thức đó để đăng nhập.';
+      } else if (e.code == 'invalid-credential') {
+        throw 'Thông tin đăng nhập không hợp lệ. Vui lòng thử lại.';
+      } else if (e.code == 'operation-not-allowed') {
+        throw 'Đăng nhập Facebook hiện chưa được bật. Liên hệ quản trị viên.';
+      }
+      throw 'Lỗi Firebase: ${e.message}';
     } catch (e) {
       throw 'Lỗi đăng nhập Facebook: $e';
     }
@@ -164,6 +204,12 @@ class AuthService {
     }
 
     try {
+      // Validate password strength
+      final passwordError = _validatePasswordStrength(newPassword);
+      if (passwordError != null) {
+        throw Exception(passwordError);
+      }
+
       AuthCredential credential = EmailAuthProvider.credential(
         email: user.email!,
         password: currentPassword,
@@ -227,26 +273,103 @@ class AuthService {
     await _auth.signOut();
   }
 
+  // Gửi email đặt lại mật khẩu
   Future<void> resetPassword(String email) async {
-    // ... (Giữ nguyên)
     try {
-      await _auth.sendPasswordResetEmail(email: email);
+      // Kiểm tra email hợp lệ
+      if (email.isEmpty) {
+        throw Exception('Email không được để trống');
+      }
+
+      // Firebase sẽ tự kiểm tra email có tồn tại hay không
+      await _auth.sendPasswordResetEmail(
+        email: email,
+        actionCodeSettings: ActionCodeSettings(
+          url: 'https://bongbieng-app.firebaseapp.com/reset-password',
+          handleCodeInApp: true,
+          dynamicLinkDomain: "bongbieng-app.firebaseapp.com",
+          androidInstallApp: true,
+          androidMinimumVersion: "21",
+          androidPackageName: "com.example.bongbieng_app",
+          iOSBundleId: "com.example.bongBieng",
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      throw Exception(_handleAuthException(e));
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Xác minh mã reset và đặt lại mật khẩu (nếu dùng link reset)
+  Future<void> confirmPasswordReset({
+    required String code,
+    required String newPassword,
+  }) async {
+    try {
+      // Validate password strength
+      final passwordError = _validatePasswordStrength(newPassword);
+      if (passwordError != null) {
+        throw passwordError;
+      }
+      await _auth.confirmPasswordReset(code: code, newPassword: newPassword);
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    }
+  }
+
+  // Xác minh email trong quá trình đặt lại mật khẩu
+  Future<String> verifyPasswordResetCode(String code) async {
+    try {
+      return await _auth.verifyPasswordResetCode(code);
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     }
   }
 
   String _handleAuthException(FirebaseAuthException e) {
-    // ... (Giữ nguyên)
     switch (e.code) {
-      case 'user-not-found': return 'Không tìm thấy tài khoản với email này.';
-      case 'wrong-password': return 'Mật khẩu không chính xác.';
-      case 'email-already-in-use': return 'Email này đã được sử dụng.';
-      case 'invalid-email': return 'Email không hợp lệ.';
-      case 'weak-password': return 'Mật khẩu quá yếu. Vui lòng chọn mật khẩu mạnh hơn.';
-      case 'operation-not-allowed': return 'Thao tác này không được phép.';
-      case 'user-disabled': return 'Tài khoản này đã bị vô hiệu hóa.';
-      default: return 'Đã xảy ra lỗi: ${e.message}';
+      case 'user-not-found': 
+        return 'Không tìm thấy tài khoản với email này.';
+      case 'wrong-password': 
+        return 'Mật khẩu không chính xác.';
+      case 'email-already-in-use': 
+        return 'Email này đã được sử dụng.';
+      case 'invalid-email': 
+        return 'Email không hợp lệ.';
+      case 'weak-password': 
+        return 'Mật khẩu quá yếu. Vui lòng chọn mật khẩu mạnh hơn.';
+      case 'operation-not-allowed': 
+        return 'Thao tác này không được phép.';
+      case 'user-disabled': 
+        return 'Tài khoản này đã bị vô hiệu hóa.';
+      case 'invalid-action-code':
+        return 'Mã đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.';
+      case 'expired-action-code':
+        return 'Mã đặt lại mật khẩu đã hết hạn. Vui lòng yêu cầu một mã mới.';
+      default: 
+        return 'Đã xảy ra lỗi: ${e.message}';
     }
+  }
+
+  // Validate password strength requirements
+  String? _validatePasswordStrength(String password) {
+    // Check minimum length
+    if (password.length < 8) {
+      return 'Mật khẩu phải có ít nhất 8 ký tự.';
+    }
+
+    // Check for at least one uppercase letter
+    if (!password.contains(RegExp(r'[A-Z]'))) {
+      return 'Mật khẩu phải chứa ít nhất 1 chữ hoa (A-Z).';
+    }
+
+    // Check for at least one special character
+    if (!password.contains(RegExp(r'[!@#$%^&*()_+\-=\[\]{};:",./<>?\\|`~-]'))) {
+      return 'Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt (!@#\$%^&* v.v.).';
+    }
+
+    // All validations passed
+    return null;
   }
 }
