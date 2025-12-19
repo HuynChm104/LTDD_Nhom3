@@ -1,19 +1,20 @@
 // lib/screens/profile/profile_screen.dart
 
 import 'package:bongbieng_app/models/user_model.dart'; // SỬA: Import UserModel
-import 'package:bongbieng_app/screens/profile/edit_profile_screen.dart';
+import 'package:bongbieng_app/screens/profile/toi/edit_profile_screen.dart';
 import 'package:bongbieng_app/providers/auth_provider.dart';
-import 'package:bongbieng_app/screens/profile/setting_screen.dart';
+import 'package:bongbieng_app/screens/profile/khac/setting_screen.dart';
 import 'package:bongbieng_app/utils/constants.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:bongbieng_app/screens/profile/privacy_policy_dialog.dart';
-import 'package:bongbieng_app/screens/profile/loyalty_screen.dart';
-import 'package:bongbieng_app/screens/profile/feedback_dialog.dart';
+import 'package:bongbieng_app/screens/profile/khac/privacy_policy_dialog.dart';
+import 'package:bongbieng_app/screens/profile/toi/loyalty_screen.dart';
+import 'package:bongbieng_app/screens/profile/khac/feedback_dialog.dart';
 
 import '../../providers/cart_provider.dart';
 import '../auth/welcome_screen.dart';
+import 'toi/myorders/order_history_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -147,10 +148,11 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 _MenuItem(
                   icon: Icons.airplane_ticket_outlined,
-                  label: "Voucher của tôi",
+                  label: "Đơn hàng của tôi",
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Chức năng này sẽ được xử lý ở Bottom Navigation Bar.')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const OrderHistoryScreen()),
                     );
                   },
                 ),
@@ -213,7 +215,7 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildUserHeader(BuildContext context, UserModel user, {required VoidCallback onCameraTap}) {
     final theme = Theme.of(context);
     // SỬA: Ưu tiên phone từ UserModel, nếu không có thì mới đến email
-    final String contactInfo = user.phone.isNotEmpty ? user.phone : user.email;
+    final String contactInfo = user.phone.isNotEmpty ? user.phone : "";
 
     return Column(
       children: [
@@ -266,7 +268,6 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildSection({required BuildContext context, required String title, required List<_MenuItem> items}) {
-    // ... (Không thay đổi)
     final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),

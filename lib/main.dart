@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'package:bongbieng_app/providers/auth_provider.dart';
 import 'package:bongbieng_app/providers/cart_provider.dart';
+import 'package:bongbieng_app/providers/order_provider.dart';
 import 'package:bongbieng_app/providers/product_provider.dart';
 import 'package:bongbieng_app/screens/auth/welcome_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
@@ -14,15 +15,27 @@ import 'package:bongbieng_app/screens/profile/profile_screen.dart';
 import 'package:bongbieng_app/widgets/bottom_nav_bar.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'utils/constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize Facebook SDK
+  await FacebookAuth.instance.webAndDesktopInitialize(
+    appId: "876477621565568", // Thay bằng Facebook App ID của bạn
+    cookie: true,
+    xfbml: true,
+    version: "v17.0",
+  );
+
   final User? currentUser = FirebaseAuth.instance.currentUser;
 
   final Widget startScreen = (currentUser != null)
@@ -44,18 +57,16 @@ class BongBiengApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => BranchProvider()),
         ChangeNotifierProvider(create: (context) => ProductProvider()),
-        // SỬA ĐOẠN NÀY:
+        ChangeNotifierProvider(create: (_) => OrderProvider()),
+
         ChangeNotifierProxyProvider2<AuthProvider, ProductProvider, CartProvider>(
           create: (context) => CartProvider(),
           update: (context, auth, products, previousCart) {
             final cart = previousCart ?? CartProvider();
             cart.update(products);
 
-            // CHỈ GỌI FETCH KHI CÓ USER, KHÔNG GỌI CLEAR Ở ĐÂY ĐỂ TRÁNH LỖI UI
-            // Việc clear giỏ hàng sẽ được xử lý ở bước Đăng xuất
             if (auth.isAuthenticated) {
-              // Đảm bảo fetchCartItems không gọi notifyListeners ngay lập tức hoặc đã được xử lý bất đồng bộ
-              // Tốt nhất là dùng cờ kiểm tra bên trong CartProvider để tránh gọi lặp lại
+
               if (cart.items.isEmpty) cart.fetchCartItems();
             }
 

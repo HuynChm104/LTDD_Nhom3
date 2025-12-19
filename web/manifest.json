@@ -1,13 +1,14 @@
 {
-    "name": "bongbieng_app",
-    "short_name": "bongbieng_app",
+    "name": "Bongbieng App",
+    "short_name": "Bongbieng",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Bongbieng - Online Tea Shop Application",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
+    "scope": "/",
     "icons": [
         {
             "src": "icons/Icon-192.png",

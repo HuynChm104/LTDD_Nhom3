@@ -1,1 +1,39 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"bongbieng-app","appId":"1:94003824961:android:0c5fc8477b5706804739c0","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"bongbieng-app","configurations":{"android":"1:94003824961:android:0c5fc8477b5706804739c0","ios":"1:94003824961:ios:d5a983cf371df91a4739c0","macos":"1:94003824961:ios:d5a983cf371df91a4739c0","web":"1:94003824961:web:1da618cae4c472274739c0","windows":"1:94003824961:web:77ded9030a673fd14739c0"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "bongbieng-app",
+          "appId": "1:94003824961:android:0c5fc8477b5706804739c0",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "bongbieng-app",
+          "configurations": {
+            "android": "1:94003824961:android:0c5fc8477b5706804739c0",
+            "web": "1:94003824961:web:1da618cae4c472274739c0"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "source": "functions",
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint"
+      ]
+    }
+  ]
+}

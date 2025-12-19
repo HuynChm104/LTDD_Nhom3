@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bongbieng_app/utils/constants.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
-import '../../providers/auth_provider.dart';
-import '../auth/welcome_screen.dart';
+import '../../../providers/auth_provider.dart';
+import '../../auth/welcome_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});

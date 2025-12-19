@@ -80,38 +80,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
               padding: const EdgeInsets.symmetric(horizontal: 0),
               child: Column(
                 children: [
-                  // Skip button
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 16.0, right: 16.0),
-                        child: TextButton(
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const LoginScreen(),
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            'Bỏ qua',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              shadows: [
-                                Shadow(blurRadius: 4.0, color: Colors.black54)
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
                   const Spacer(),
 
                   const Spacer(),

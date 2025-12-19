@@ -34,7 +34,9 @@ class CartProvider extends ChangeNotifier {
     return total;
   }
 
-  int get totalItems => _items.values.fold(0, (sum, item) => sum + item.quantity);
+  int get totalItems => _items.length;
+
+  int get totalQuantity => _items.values.fold(0, (sum, item) => sum + item.quantity);
 
   Future<void> fetchCartItems() async {
     final user = _auth.currentUser;
@@ -135,24 +137,31 @@ class CartProvider extends ChangeNotifier {
   }
 
   // XÓA NHIỀU ITEM CÙNG LÚC
+// lib/providers/cart_provider.dart
+
   Future<void> removeMultipleItems(List<String> cartItemIds) async {
     final user = _auth.currentUser;
     if (user == null || cartItemIds.isEmpty) return;
 
-    // Cập nhật trên UI trước
+    // 1. Cập nhật UI ngay lập tức
     for (var id in cartItemIds) {
       _items.remove(id);
     }
-    notifyListeners();
-    // Dùng WriteBatch để xóa nhiều document trong 1 lần gọi API, tiết kiệm chi phí
-    final cartCollection = _firestore.collection('users').doc(user.uid).collection('cart');
-    WriteBatch batch = _firestore.batch();
-    for (var id in cartItemIds) {
-      batch.delete(cartCollection.doc(id));
-    }
-    await batch.commit();
-  }
+    notifyListeners(); // Cập nhật UI lần 1
 
+    try {
+      final cartCollection = _firestore.collection('users').doc(user.uid).collection('cart');
+      WriteBatch batch = _firestore.batch();
+      for (var id in cartItemIds) {
+        batch.delete(cartCollection.doc(id));
+      }
+      await batch.commit();
+      // Không cần fetch lại toàn bộ vì ta đã xóa thủ công ở trên
+    } catch (e) {
+      print("Lỗi khi xóa nhiều mục: $e");
+      await fetchCartItems(); // Nếu lỗi thì đồng bộ lại từ server
+    }
+  }
   // XÓA TOÀN BỘ GIỎ HÀNG
   Future<void> clearCart() async {
     final user = _auth.currentUser;

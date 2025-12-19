@@ -1,5 +1,6 @@
 // lib/screens/auth/register_screen.dart
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/constants.dart';
@@ -85,6 +86,29 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
             ),
           );
         }
+      }
+    }
+  }
+
+  Future<void> _handleSocialLogin(Future<bool> Function() loginMethod) async {
+    FocusScope.of(context).unfocus();
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    final success = await loginMethod();
+
+    if (mounted) {
+      if (success) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const SplashScreen()),
+              (route) => false,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.errorMessage ?? 'Đăng ký thất bại.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
       }
     }
   }
@@ -299,6 +323,59 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                     ),
                   ),
                   const SizedBox(height: 24),
+
+                  // Divider with text
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Divider(
+                          color: Colors.white30,
+                          thickness: 1,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'Hoặc đăng ký bằng',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ),
+                      const Expanded(
+                        child: Divider(
+                          color: Colors.white30,
+                          thickness: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Social Login Buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildSocialButton(
+                        icon: FontAwesomeIcons.google,
+                        color: Colors.red,
+                        onPressed: authProvider.isLoading
+                            ? () {}
+                            : () => _handleSocialLogin(authProvider.signInWithGoogle),
+                      ),
+                      const SizedBox(width: 20),
+                      _buildSocialButton(
+                        icon: FontAwesomeIcons.facebook,
+                        color: Colors.blue.shade800,
+                        onPressed: authProvider.isLoading
+                            ? () {}
+                            : () => _handleSocialLogin(authProvider.signInWithFacebook),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -325,5 +402,46 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
         ),
       ),
     );
+  }
+}
+
+Widget _buildSocialButton({required IconData icon, required Color color, required VoidCallback onPressed}) {
+  return InkWell(
+    onTap: onPressed,
+    borderRadius: BorderRadius.circular(16),
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 32),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withOpacity(0.95),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.textLight.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Icon(icon, color: color, size: 24),
+    ),
+  );
+  String? _validatePasswordStrength(String password) {
+    // Check minimum length
+    if (password.length < 8) {
+      return 'Mật khẩu phải có ít nhất 8 ký tự.';
+    }
+
+    // Check for at least one uppercase letter
+    if (!password.contains(RegExp(r'[A-Z]'))) {
+      return 'Mật khẩu phải chứa ít nhất 1 chữ hoa (A-Z).';
+    }
+
+    // Check for at least one special character
+    if (!password.contains(RegExp(r'[!@#$%^&*()_+\-=\[\]{};:",./<>?\\|`~-]'))) {
+      return 'Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt (!@#\$%^&* v.v.).';
+    }
+
+    // All validations passed
+    return null;
   }
 }

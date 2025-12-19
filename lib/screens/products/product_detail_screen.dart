@@ -331,6 +331,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     backgroundColor: AppColors.success,
+                    duration: const Duration(seconds: 2),
                     content: Text(
                       "Đã thêm ${_quantity}x ${widget.product.name} vào giỏ!",
                       style: const TextStyle(color: Colors.white),
@@ -338,6 +339,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                 );
               },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16), // Tăng độ dày nút
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

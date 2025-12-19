@@ -12,7 +12,20 @@
           "package_name": "com.example.bongbieng_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "94003824961-ee6202na10foq4fcbn18as36icg3m2rb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.bongbieng_app",
+            "certificate_hash": "a0a61d7b0fce72bc7d136908eeca14e0619bd489"
+          }
+        },
+        {
+          "client_id": "94003824961-l26onrkkkdkmei9vsvufmdipmd8q37cr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCenpKOMOjIpYRhYuMwKpw8ZJrPvrAsC4I"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "94003824961-l26onrkkkdkmei9vsvufmdipmd8q37cr.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "94003824961-mf2r34ksc0kdfhtmviebkk4rm9233m7d.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.bongbiengApp"
+              }
+            }
+          ]
         }
       }
     }

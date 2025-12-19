@@ -1,7 +1,8 @@
-// lib/screens/notification/notification_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../models/notification_model.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/notification_service.dart';
 import '../../utils/constants.dart';
 
@@ -10,12 +11,14 @@ class NotificationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Lấy userId hiện tại để truyền vào các hàm xử lý
+    final userId = Provider.of<AuthProvider>(context).user?.id ?? '';
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        // Nút Back màu đen cho đồng bộ
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.black),
           onPressed: () => Navigator.pop(context),
@@ -27,16 +30,17 @@ class NotificationScreen extends StatelessWidget {
             color: AppColors.black,
             fontWeight: FontWeight.bold,
             fontSize: 18,
-            fontFamily: 'Poppins', // Ép cứng font cho giống
+            fontFamily: 'Poppins',
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => NotificationService.markAllAsRead(),
+            // Cập nhật: Truyền userId để chỉ đánh dấu "Đọc tất cả" cho riêng user này
+            onPressed: () => NotificationService.markAllAsRead(userId),
             child: const Text(
               "Đọc tất cả",
               style: TextStyle(
-                color: AppColors.black, // Dùng màu chủ đạo
+                color: AppColors.black,
                 fontWeight: FontWeight.w600,
                 fontFamily: 'Poppins',
               ),
@@ -45,7 +49,7 @@ class NotificationScreen extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<List<NotificationModel>>(
-        stream: NotificationService.getNotifications(),
+        stream: NotificationService.getNotifications(userId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: AppColors.primary));
@@ -78,7 +82,8 @@ class NotificationScreen extends StatelessWidget {
             itemCount: notifications.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              return _buildNotificationItem(notifications[index]);
+              // Truyền thêm userId vào hàm build item
+              return _buildNotificationItem(notifications[index], userId);
             },
           );
         },
@@ -86,7 +91,8 @@ class NotificationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNotificationItem(NotificationModel notif) {
+  // CẬP NHẬT THAM SỐ: Nhận thêm userId
+  Widget _buildNotificationItem(NotificationModel notif, String userId) {
     IconData iconData;
     Color iconColor;
 
@@ -104,27 +110,29 @@ class NotificationScreen extends StatelessWidget {
         iconColor = AppColors.primary;
     }
 
+    // Sử dụng hàm helper từ model để kiểm tra user hiện tại đã đọc tin này chưa
+    final bool isRead = notif.isReadByUser(userId);
+
     return GestureDetector(
       onTap: () {
-        if (!notif.isRead) {
-          NotificationService.markAsRead(notif.id);
+        if (!isRead) {
+          // Cập nhật: Truyền ID thông báo và userId để thêm vào mảng readBy
+          NotificationService.markAsRead(notif.id, userId);
         }
       },
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          // Tin chưa đọc: Màu nền mờ theo màu chủ đạo. Tin đã đọc: Màu trắng
-          color: notif.isRead ? Colors.white : AppColors.primary.withOpacity(0.08),
+          // Màu nền thay đổi dựa trên trạng thái đọc của user hiện tại
+          color: isRead ? Colors.white : AppColors.primary.withOpacity(0.08),
           borderRadius: BorderRadius.circular(16),
-          // Chỉ hiện viền nếu đã đọc (để phân biệt)
-          border: notif.isRead
-              ? Border.all(color: Colors.grey.withValues(alpha: 0.2))
+          border: isRead
+              ? Border.all(color: Colors.grey.withOpacity(0.2))
               : Border.all(color: Colors.transparent),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon tròn
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -134,8 +142,6 @@ class NotificationScreen extends StatelessWidget {
               child: Icon(iconData, color: iconColor, size: 20),
             ),
             const SizedBox(width: 16),
-
-            // Nội dung
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,16 +153,14 @@ class NotificationScreen extends StatelessWidget {
                         child: Text(
                           notif.title,
                           style: TextStyle(
-                            // Chưa đọc: Chữ đen đậm. Đã đọc: Chữ xám đậm
-                            fontWeight: notif.isRead ? FontWeight.w600 : FontWeight.bold,
+                            fontWeight: isRead ? FontWeight.w600 : FontWeight.bold,
                             fontSize: 15,
                             fontFamily: 'Poppins',
-                            color: notif.isRead ? Colors.black87 : Colors.black,
+                            color: isRead ? Colors.black87 : Colors.black,
                           ),
                         ),
                       ),
-                      // Chấm đỏ
-                      if (!notif.isRead)
+                      if (!isRead)
                         Container(
                           margin: const EdgeInsets.only(left: 8),
                           width: 8,

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <script src="https://js.stripe.com/v3/"></script>
   <!--
     If you are serving your web app in a path other than the root, change the
     href value below to reflect the base path you are serving from.
@@ -31,9 +32,27 @@
 
   <title>bongbieng_app</title>
   <link rel="manifest" href="manifest.json">
-  <!-- web/index.html -->
-
-  <!-- ... các thẻ meta và link khác ... -->
+  
+  <!-- Google Sign-In Configuration -->
+  <meta name="google-signin-client_id" content="YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com">
+  
+  <!-- Google Sign-In SDK for Web -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  
+  <!-- Facebook SDK for Web -->
+  <script>
+    window.fbAsyncInit = function() {
+      FB.init({
+        appId      : '876477621565568', // Replace with your Facebook App ID
+        cookie     : true,
+        xfbml      : true,
+        version    : 'v18.0'
+      });
+    };
+  </script>
+  <script async defer crossorigin="anonymous" 
+    src="https://connect.facebook.net/vi_VN/sdk.js#xfbml=1&version=v18.0&appId=876477621565568" 
+    nonce="GENERATED_NONCE"></script>
 
 </head>
 <body>

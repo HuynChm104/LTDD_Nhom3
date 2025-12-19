@@ -272,6 +272,43 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // Xác minh mã reset password và đặt lại mật khẩu
+  Future<bool> confirmPasswordReset({
+    required String code,
+    required String newPassword,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await _authService.confirmPasswordReset(code: code, newPassword: newPassword);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _handleAuthError(e);
+      return false;
+    }
+  }
+
+  // Xác minh mã reset password
+  Future<String?> verifyPasswordResetCode(String code) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final email = await _authService.verifyPasswordResetCode(code);
+      _isLoading = false;
+      notifyListeners();
+      return email;
+    } catch (e) {
+      _handleAuthError(e);
+      _isLoading = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
 
   void clearError() {
     _errorMessage = null;
