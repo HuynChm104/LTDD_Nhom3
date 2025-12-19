@@ -15,25 +15,41 @@ class HomeContent extends StatefulWidget {
   State<HomeContent> createState() => _HomeContentState();
 }
 
-// BƯỚC QUAN TRỌNG: Thêm 'with AutomaticKeepAliveClientMixin'
 class _HomeContentState extends State<HomeContent> with AutomaticKeepAliveClientMixin {
   String selectedCategory = 'bestseller';
+
+  // SỬA 1: Khai báo biến để lưu giữ luồng dữ liệu, tránh bị tạo lại khi rebuild
+  late Stream<List<ProductModel>> _productStream;
 
   final List<Map<String, dynamic>> staticCategories = [
     {'id': 'all', 'label': 'Tất cả', 'icon': Icons.menu},
     {'id': 'bestseller', 'label': 'Best Seller', 'icon': Icons.star},
   ];
 
-  // BẮT BUỘC: Để giữ giao diện không bị load lại
   @override
   bool get wantKeepAlive => true;
 
+  // SỬA 2: Khởi tạo luồng dữ liệu 1 lần duy nhất khi màn hình được tạo
+  @override
+  void initState() {
+    super.initState();
+    _productStream = _getProductStream();
+  }
+
+  // Hàm xử lý khi chọn danh mục
+  void _onCategoryChanged(String newCategoryId) {
+    if (selectedCategory == newCategoryId) return;
+
+    setState(() {
+      selectedCategory = newCategoryId;
+      _productStream = _getProductStream(); // Chỉ tạo luồng mới khi đổi danh mục
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    super.build(context); // BẮT BUỘC
+    super.build(context);
 
-    // ĐÂY LÀ ĐOẠN CODE CŨ CỦA BẠN (CustomScrollView) ĐƯỢC CHUYỂN SANG ĐÂY
-    // CustomScrollView sẽ tự động lấy màu nền từ Scaffold, không cần đặt màu nền ở đây.
     return CustomScrollView(
       slivers: [
         // 1. BANNER
@@ -53,7 +69,6 @@ class _HomeContentState extends State<HomeContent> with AutomaticKeepAliveClient
                     'assets/images/main_banner.jpg',
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
-                      // SỬA MÀU #1: Đảm bảo dùng đúng màu chủ đạo
                       color: AppColors.primary,
                       child: const Center(
                         child: Text("Banner", style: TextStyle(color: Colors.white)),
@@ -69,18 +84,14 @@ class _HomeContentState extends State<HomeContent> with AutomaticKeepAliveClient
         // 2. CATEGORY
         SliverToBoxAdapter(
           child: Container(
-            // Đoạn này tạo hiệu ứng "nâng" khu vực category lên trên banner một chút
-            // do bo tròn của banner bị che đi.
-            // Bằng cách đổi màu nền thành màu nền chung của app, nó sẽ liền mạch hơn.
             margin: const EdgeInsets.only(top: 0),
             decoration: const BoxDecoration(
-              // SỬA MÀU #2: Đồng bộ với màu nền của Scaffold
-              color: AppColors.background,
+              color: AppColors.white, // Hoặc AppColors.background tùy theme
               borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
             ),
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
             child: StreamBuilder<List<CategoryModel>>(
-              key: ValueKey(selectedCategory),
+              // Lưu ý: Bỏ key ở đây để tránh rebuild không cần thiết
               stream: CategoryService.getCategories(),
               builder: (context, snapshot) {
                 List<Map<String, dynamic>> allCategories = List.from(staticCategories);
@@ -97,7 +108,7 @@ class _HomeContentState extends State<HomeContent> with AutomaticKeepAliveClient
                 }
 
                 return SizedBox(
-                  height: 50, // Tăng chiều cao một chút để thẻ CategoryCard không bị quá chật
+                  height: 50,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     itemCount: allCategories.length,
@@ -109,11 +120,8 @@ class _HomeContentState extends State<HomeContent> with AutomaticKeepAliveClient
                           label: cat['label'],
                           icon: cat['icon'],
                           isSelected: selectedCategory == cat['id'],
-                          onTap: () {
-                            setState(() {
-                              selectedCategory = cat['id'];
-                            });
-                          },
+                          // SỬA 3: Gọi hàm _onCategoryChanged thay vì setState trực tiếp
+                          onTap: () => _onCategoryChanged(cat['id']),
                         ),
                       );
                     },
@@ -126,13 +134,12 @@ class _HomeContentState extends State<HomeContent> with AutomaticKeepAliveClient
 
         // 3. PRODUCT GRID
         StreamBuilder<List<ProductModel>>(
-          stream: _getProductStream(),
+          stream: _productStream, // SỬA 4: Dùng biến đã lưu, KHÔNG gọi hàm _getProductStream() ở đây
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const SliverToBoxAdapter(
                 child: SizedBox(
                   height: 200,
-                  // SỬA MÀU #3: Dùng màu chủ đạo cho vòng xoay loading
                   child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
                 ),
               );
@@ -150,17 +157,16 @@ class _HomeContentState extends State<HomeContent> with AutomaticKeepAliveClient
             }
 
             return SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 100), // Padding bottom để né nút giỏ hàng
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 0.82, // Điều chỉnh tỷ lệ để card sản phẩm cân đối hơn
+                  childAspectRatio: 0.82,
                   crossAxisSpacing: 20,
                   mainAxisSpacing: 20,
                 ),
                 delegate: SliverChildBuilderDelegate((ctx, i) {
                   final p = products[i];
-                  // ProductCard sẽ cần được cập nhật ở một file riêng
                   return ProductCard(
                     image: p.image,
                     name: p.name,
