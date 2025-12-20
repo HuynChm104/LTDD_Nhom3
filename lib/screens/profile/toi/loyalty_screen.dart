@@ -56,15 +56,16 @@ class LoyaltyScreen extends StatelessWidget {
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
         builder: (context, snapshot) {
+          if (snapshot.hasError) return const Center(child: Text("Lỗi tải dữ liệu"));
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // Lấy điểm từ Firebase. Nếu chưa có trường 'loyaltyPoints' thì mặc định là 0
+          // ĐỒNG BỘ: Sử dụng trường 'points' thay vì 'loyaltyPoints'
           int currentPoints = 0;
           if (snapshot.hasData && snapshot.data!.exists) {
             final data = snapshot.data!.data() as Map<String, dynamic>?;
-            currentPoints = (data?['loyaltyPoints'] ?? 0) as int;
+            currentPoints = data?['points'] ?? 0; // Sửa ở đây
           }
 
           // Tính toán hạng

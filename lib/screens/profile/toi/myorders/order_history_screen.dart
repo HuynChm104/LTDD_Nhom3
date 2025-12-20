@@ -101,8 +101,13 @@ class _OrderCard extends StatelessWidget {
   final OrderModel order;
   const _OrderCard({required this.order});
 
+// Trong hàm _handleCancel của file order_history_screen.dart
+
   void _handleCancel(BuildContext context) {
+    // Điều kiện thanh toán online
     bool isOnlinePayment = order.paymentMethod == 'zalopay' || order.paymentMethod == 'banking';
+    // Điều kiện đã trả tiền
+    bool showRefundNote = order.isPaid && isOnlinePayment;
 
     showDialog(
       context: context,
@@ -110,40 +115,37 @@ class _OrderCard extends StatelessWidget {
         title: const Text("Xác nhận hủy đơn"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text("Bạn có chắc chắn muốn hủy đơn hàng này không?"),
-            if (isOnlinePayment && order.isPaid) ...[
-              const SizedBox(height: 12),
-              const Text(
-                "Lưu ý: Bạn đã thanh toán cho đơn hàng này. Tiền sẽ được hoàn lại vào tài khoản của bạn trong vòng 24h-48h làm việc.",
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13),
+            if (showRefundNote) ...[
+              const SizedBox(height: 15),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  "⚠️ Lưu ý: Đơn hàng đã thanh toán. Tiền sẽ được hoàn trả tự động vào tài khoản của bạn.",
+                  style: TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.bold),
+                ),
               ),
             ]
           ],
         ),
         actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("ĐÓNG")),
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("ĐÓNG", style: TextStyle(color: AppColors.textGrey)),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              bool success = await context.read<OrderProvider>().cancelOrder(order);
-              if (success && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Đã hủy đơn hàng thành công")),
-                );
-              }
-            },
-            child: const Text("HỦY ĐƠN", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              onPressed: () async {
+                Navigator.pop(context);
+                await context.read<OrderProvider>().cancelOrder(order);
+              },
+              child: const Text("HỦY ĐƠN", style: TextStyle(color: Colors.red))
           ),
         ],
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     final priceFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
@@ -284,4 +286,6 @@ class _OrderCard extends StatelessWidget {
       child: Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
     );
   }
+
+
 }

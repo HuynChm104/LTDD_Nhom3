@@ -11,6 +11,8 @@ class UserModel {
   final String favoriteBranch;
   final String avatar;
   final DateTime createdAt;
+  final int points;
+
 
   UserModel({
     required this.id,
@@ -22,6 +24,7 @@ class UserModel {
     required this.favoriteBranch,
     required this.avatar,
     required this.createdAt,
+    this.points = 0,
 
   });
 
@@ -38,6 +41,7 @@ class UserModel {
       favoriteBranch: data['favoriteBranch'] ?? '',
       avatar: data['avatar'] ?? '',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      points: data['points'] ?? 0,
     );
   }
 }

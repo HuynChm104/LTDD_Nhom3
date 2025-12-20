@@ -50,129 +50,21 @@ class OrderProvider with ChangeNotifier {
         .toList());
   }
 
-  // Hủy đơn hàng và gửi thông báo
+  // lib/providers/order_provider.dart
+
   Future<bool> cancelOrder(OrderModel order) async {
+    _isLoading = true;
+    notifyListeners();
     try {
-      await _firestore.collection('orders').doc(order.id).update({'status': 'cancelled'});
-
-      String notifyBody = "Bạn đã hủy đơn hàng ${order.id.substring(0, 10)}.";
-      if ((order.paymentMethod == 'zalopay' || order.paymentMethod == 'banking') && order.isPaid) {
-        notifyBody += " Tiền sẽ được hoàn lại trong 24h-48h.";
-      }
-
-      await _firestore.collection('notifications').add({
-        'title': 'Hủy đơn hàng thành công',
-        'body': notifyBody,
-        'createdAt': FieldValue.serverTimestamp(),
-        // SỬA: Thay isRead: false bằng readBy: [] để đồng bộ phương án A
-        'readBy': [],
-        'type': 'order',
-        'userId': order.userId,
-      });
-
+      await _orderService.userCancelOrder(order);
+      _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      print("Lỗi khi hủy đơn: $e");
-      return false;
-    }
-  }
-
-  // Cập nhật trạng thái và tạo thông báo tương ứng
-  Future<void> updateOrderStatusAndNotify(OrderModel order, String newStatus) async {
-    try {
-      await _firestore.collection('orders').doc(order.id).update({
-        'status': newStatus,
-      });
-
-      String title = "";
-      String body = "";
-      switch (newStatus) {
-        case 'processing':
-          title = "Đơn hàng đã được xác nhận";
-          body = "Quán đang chuẩn bị món cho đơn hàng ${order.id.substring(0, 10)}.";
-          break;
-        case 'shipping':
-          title = "Đơn hàng đang giao";
-          body = "Tài xế đang mang món đến với bạn đây!";
-          break;
-        case 'completed':
-          title = "Giao hàng thành công";
-          body = "Cảm ơn bạn đã ủng hộ Bông Biêng. Chúc bạn ngon miệng!";
-          break;
-        case 'cancelled':
-          title = "Đơn hàng đã hủy";
-          body = "Đơn hàng ${order.id.substring(0, 10)} đã bị hủy.";
-          break;
-      }
-
-      if (title.isNotEmpty) {
-        await _firestore.collection('notifications').add({
-          'title': title,
-          'body': body,
-          'createdAt': FieldValue.serverTimestamp(),
-          // SỬA: Thay isRead: false bằng readBy: [] để đồng bộ phương án A
-          'readBy': [],
-          'type': 'order',
-          'userId': order.userId,
-        });
-      }
-
+      _isLoading = false;
       notifyListeners();
-    } catch (e) {
-      print("Lỗi cập nhật trạng thái: $e");
-    }
-  }
-
-  // Thêm hàm này vào class OrderProvider
-  void listenToOrderChanges(String userId) {
-    _firestore
-        .collection('orders')
-        .where('userId', isEqualTo: userId)
-        .snapshots()
-        .listen((snapshot) {
-      for (var change in snapshot.docChanges) {
-        // Chỉ xử lý khi có một document bị sửa đổi (Modified) trên Firebase Console
-        if (change.type == DocumentChangeType.modified) {
-          final orderData = change.doc.data();
-          final newStatus = orderData?['status'];
-          final orderId = change.doc.id;
-
-          // Gọi hàm tạo thông báo tự động (dùng hàm có sẵn của bạn nhưng tách logic ra)
-          _createAutoNotification(userId, orderId, newStatus);
-        }
-      }
-    });
-  }
-
-  Future<void> _createAutoNotification(String userId, String orderId, String status) async {
-    String title = "";
-    String body = "";
-
-    switch (status) {
-      case 'processing':
-        title = "Đơn hàng đã được xác nhận";
-        body = "Quán đang chuẩn bị món cho đơn hàng ${orderId.substring(0, 5)}.";
-        break;
-      case 'shipping':
-        title = "Đơn hàng đang giao";
-        body = "Tài xế đang mang món đến với bạn đây!";
-        break;
-      case 'completed':
-        title = "Giao hàng thành công";
-        body = "Cảm ơn bạn đã ủng hộ Bông Biêng!";
-        break;
-    }
-
-    if (title.isNotEmpty) {
-      await _firestore.collection('notifications').add({
-        'title': title,
-        'body': body,
-        'createdAt': FieldValue.serverTimestamp(),
-        'readBy': [],
-        'type': 'order',
-        'userId': userId,
-      });
+      print("Lỗi hủy đơn: $e");
+      return false;
     }
   }
 }

@@ -160,10 +160,6 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
-    final userId = context.read<AuthProvider>().user?.id;
-    if (userId != null) {
-      context.read<OrderProvider>().listenToOrderChanges(userId);
-    }
     _pages = [
       const HomeScreen(),
       const VoucherScreen(),
