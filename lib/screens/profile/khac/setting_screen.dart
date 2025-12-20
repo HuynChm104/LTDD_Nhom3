@@ -18,192 +18,131 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _receiveNotification = true;
   final User? user = FirebaseAuth.instance.currentUser;
+  String? _globalError;
 
   // --- HÀM 1: ĐỔI MẬT KHẨU TRONG APP ---
   Future<void> _changePassword(BuildContext context) async {
-    // Controllers cho dialog
-    final currentPasswordController = TextEditingController();
-    final newPasswordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    
-    bool obscureCurrentPassword = true;
-    bool obscureNewPassword = true;
-    bool obscureConfirmPassword = true;
-
-    showDialog(
+    await showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text("Đổi Mật Khẩu"),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Mật khẩu hiện tại
-                  TextFormField(
-                    controller: currentPasswordController,
-                    obscureText: obscureCurrentPassword,
-                    decoration: InputDecoration(
-                      labelText: "Mật khẩu hiện tại",
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          obscureCurrentPassword ? Icons.visibility_off : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(() => obscureCurrentPassword = !obscureCurrentPassword);
-                        },
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Vui lòng nhập mật khẩu hiện tại';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Mật khẩu mới
-                  TextFormField(
-                    controller: newPasswordController,
-                    obscureText: obscureNewPassword,
-                    decoration: InputDecoration(
-                      labelText: "Mật khẩu mới",
-                      prefixIcon: const Icon(Icons.lock),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          obscureNewPassword ? Icons.visibility_off : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(() => obscureNewPassword = !obscureNewPassword);
-                        },
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Vui lòng nhập mật khẩu mới';
-                      }
-                      if (value.length < 8) {
-                        return 'Mật khẩu phải có ít nhất 8 ký tự';
-                      }
-                      if (!value.contains(RegExp(r'[A-Z]'))) {
-                        return 'Mật khẩu phải chứa ít nhất 1 chữ hoa';
-                      }
-                      if (!value.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
-                        return 'Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Xác nhận mật khẩu mới
-                  TextFormField(
-                    controller: confirmPasswordController,
-                    obscureText: obscureConfirmPassword,
-                    decoration: InputDecoration(
-                      labelText: "Xác nhận mật khẩu mới",
-                      prefixIcon: const Icon(Icons.lock),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(() => obscureConfirmPassword = !obscureConfirmPassword);
-                        },
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Vui lòng xác nhận mật khẩu';
-                      }
-                      if (value != newPasswordController.text) {
-                        return 'Mật khẩu xác nhận không khớp';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // Gợi ý mật khẩu mạnh
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.info_outline, size: 16, color: Colors.blue),
-                        SizedBox(width: 8),
-                        Expanded(
+      barrierDismissible: false,
+      builder: (dContext) {
+        final curPass = TextEditingController();
+        final newPass = TextEditingController();
+        final confPass = TextEditingController();
+        final formKey = GlobalKey<FormState>();
+
+        bool obscureCur = true;
+        bool obscureNew = true;
+        bool obscureConf = true;
+        String? localError;
+
+        return StatefulBuilder(
+          builder: (stContext, setDialogState) {
+            return AlertDialog(
+              title: const Text("Đổi Mật Khẩu"),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (localError != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
                           child: Text(
-                            'Mật khẩu cần: ≥8 ký tự, chữ hoa, ký tự đặc biệt',
-                            style: TextStyle(fontSize: 12, color: Colors.blue),
+                            localError!,
+                            style: const TextStyle(color: Colors.red, fontSize: 13),
                           ),
                         ),
-                      ],
-                    ),
+
+                      TextFormField(
+                        controller: curPass,
+                        obscureText: obscureCur,
+                        decoration: InputDecoration(
+                          labelText: "Mật khẩu hiện tại",
+                          suffixIcon: IconButton(
+                            icon: Icon(obscureCur ? Icons.visibility_off : Icons.visibility),
+                            onPressed: () => setDialogState(() => obscureCur = !obscureCur),
+                          ),
+                        ),
+                        validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập mật khẩu cũ' : null,
+                      ),
+                      const SizedBox(height: 12),
+
+                      TextFormField(
+                        controller: newPass,
+                        obscureText: obscureNew,
+                        decoration: InputDecoration(
+                          labelText: "Mật khẩu mới",
+                          suffixIcon: IconButton(
+                            icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility),
+                            onPressed: () => setDialogState(() => obscureNew = !obscureNew),
+                          ),
+                        ),
+                        validator: (v) => v == null || v.length < 8 ? 'Mật khẩu mới ít nhất 8 ký tự' : null,
+                      ),
+                      const SizedBox(height: 12),
+
+                      TextFormField(
+                        controller: confPass,
+                        obscureText: obscureConf,
+                        decoration: InputDecoration(
+                          labelText: "Xác nhận mật khẩu mới",
+                          suffixIcon: IconButton(
+                            icon: Icon(obscureConf ? Icons.visibility_off : Icons.visibility),
+                            onPressed: () => setDialogState(() => obscureConf = !obscureConf),
+                          ),
+                        ),
+                        validator: (v) => v != newPass.text ? 'Mật khẩu xác nhận không khớp' : null,
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text("Hủy"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (formKey.currentState!.validate()) {
-                  try {
-                    // Đổi mật khẩu
-                    final authService = AuthService();
-                    await authService.changePassword(
-                      currentPassword: currentPasswordController.text,
-                      newPassword: newPasswordController.text,
-                    );
-                    
-                    if (context.mounted) {
-                      Navigator.pop(dialogContext);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Đổi mật khẩu thành công!"),
-                          backgroundColor: AppColors.success,
-                        ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dContext),
+                  child: const Text("Hủy"),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (!formKey.currentState!.validate()) return;
+
+                    try {
+                      await AuthService().changePassword(
+                        currentPassword: curPass.text,
+                        newPassword: newPass.text,
                       );
+
+                      if (context.mounted) {
+                        Navigator.pop(dContext);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Đổi mật khẩu thành công!"),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      setDialogState(() {
+                        localError = e.toString().contains('incorrect')
+                            ? "Mật khẩu hiện tại không chính xác"
+                            : "Lỗi hệ thống, vui lòng thử lại";
+                      });
                     }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(e.toString()),
-                          backgroundColor: AppColors.error,
-                        ),
-                      );
-                    }
-                  }
-                }
-              },
-              child: const Text("Đổi Mật Khẩu"),
-            ),
-          ],
-        ),
-      ),
-    ).then((_) {
-      // Cleanup sau khi dialog đã đóng hoàn toàn
-      currentPasswordController.dispose();
-      newPasswordController.dispose();
-      confirmPasswordController.dispose();
-    });
+                  },
+                  child: const Text("Xác nhận"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
-  // --- HÀM 2: XÓA TÀI KHOẢN ---
+
+
   Future<void> _deleteAccount(BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,

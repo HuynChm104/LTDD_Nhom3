@@ -123,4 +123,56 @@ class OrderProvider with ChangeNotifier {
       print("Lỗi cập nhật trạng thái: $e");
     }
   }
+
+  // Thêm hàm này vào class OrderProvider
+  void listenToOrderChanges(String userId) {
+    _firestore
+        .collection('orders')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .listen((snapshot) {
+      for (var change in snapshot.docChanges) {
+        // Chỉ xử lý khi có một document bị sửa đổi (Modified) trên Firebase Console
+        if (change.type == DocumentChangeType.modified) {
+          final orderData = change.doc.data();
+          final newStatus = orderData?['status'];
+          final orderId = change.doc.id;
+
+          // Gọi hàm tạo thông báo tự động (dùng hàm có sẵn của bạn nhưng tách logic ra)
+          _createAutoNotification(userId, orderId, newStatus);
+        }
+      }
+    });
+  }
+
+  Future<void> _createAutoNotification(String userId, String orderId, String status) async {
+    String title = "";
+    String body = "";
+
+    switch (status) {
+      case 'processing':
+        title = "Đơn hàng đã được xác nhận";
+        body = "Quán đang chuẩn bị món cho đơn hàng ${orderId.substring(0, 5)}.";
+        break;
+      case 'shipping':
+        title = "Đơn hàng đang giao";
+        body = "Tài xế đang mang món đến với bạn đây!";
+        break;
+      case 'completed':
+        title = "Giao hàng thành công";
+        body = "Cảm ơn bạn đã ủng hộ Bông Biêng!";
+        break;
+    }
+
+    if (title.isNotEmpty) {
+      await _firestore.collection('notifications').add({
+        'title': title,
+        'body': body,
+        'createdAt': FieldValue.serverTimestamp(),
+        'readBy': [],
+        'type': 'order',
+        'userId': userId,
+      });
+    }
+  }
 }

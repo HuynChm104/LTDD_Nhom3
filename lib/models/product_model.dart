@@ -21,6 +21,8 @@ class ProductModel {
   });
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
+    final rawImage = json['image'] ?? json['picture'];
+
     return ProductModel(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
@@ -29,7 +31,10 @@ class ProductModel {
       description: json['description'] ?? '',
       basePrice: (json['basePrice'] ?? 0).toDouble(),
       isBestSeller: json['isBestSeller'] ?? false,
-      image: json['image'] ?? 'macdinhsanpham.jpg',
+      image: (rawImage != null && rawImage.toString().startsWith('http'))
+          ? rawImage
+          : 'https://via.placeholder.com/300x300.png?text=No+Image',
     );
   }
+
 }

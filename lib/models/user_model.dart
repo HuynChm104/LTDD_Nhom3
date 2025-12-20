@@ -22,6 +22,7 @@ class UserModel {
     required this.favoriteBranch,
     required this.avatar,
     required this.createdAt,
+
   });
 
 

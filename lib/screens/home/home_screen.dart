@@ -1,8 +1,11 @@
 // lib/screens/home/home_screen.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 
 import '../../models/product_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/order_provider.dart';
 import '../../services/product_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/string_helper.dart'; // File chứa hàm removeDiacritics

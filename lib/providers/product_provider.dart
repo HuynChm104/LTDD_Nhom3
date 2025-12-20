@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/product_model.dart';
 import '../services/product_service.dart';
-import '../services/db_helper.dart'; // Import file DBHelper bạn vừa tạo
+import '../services/sqlite/db_helper.dart'; // Import file DBHelper bạn vừa tạo
 
 class ProductProvider extends ChangeNotifier {
   Map<String, ProductModel> _products = {};

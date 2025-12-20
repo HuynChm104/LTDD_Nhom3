@@ -196,28 +196,49 @@ class AuthService {
     required String newPassword,
   }) async {
     final User? user = _auth.currentUser;
+
+    // 1. Kiểm tra user hợp lệ
     if (user == null || user.email == null) {
-      throw Exception('Không thể đổi mật khẩu cho tài khoản này.');
+      throw 'Không thể xác định tài khoản. Vui lòng đăng nhập lại.';
     }
 
     try {
-      // Validate password strength
+      // 2. Kiểm tra độ mạnh mật khẩu mới
       final passwordError = _validatePasswordStrength(newPassword);
       if (passwordError != null) {
-        throw Exception(passwordError);
+        throw passwordError;
       }
 
+      // 3. XÁC THỰC LẠI (Quan trọng nhất)
+      // Bước này giúp Firebase tin tưởng rằng chính chủ đang thực hiện thay đổi
       AuthCredential credential = EmailAuthProvider.credential(
         email: user.email!,
         password: currentPassword,
       );
-      await user.reauthenticateWithCredential(credential);
-      await user.updatePassword(newPassword);
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'wrong-password') {
-        throw 'Mật khẩu hiện tại không chính xác.';
+
+      try {
+        await user.reauthenticateWithCredential(credential);
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'wrong-password') {
+          throw 'Mật khẩu hiện tại không chính xác.';
+        } else if (e.code == 'user-not-found') {
+          throw 'Không tìm thấy thông tin người dùng.';
+        }
+        throw 'Lỗi xác thực: ${e.message}';
       }
-      throw 'Đã xảy ra lỗi. Vui lòng thử lại.';
+
+      // 4. CẬP NHẬT MẬT KHẨU MỚI
+      await user.updatePassword(newPassword);
+
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'weak-password') {
+        throw 'Mật khẩu mới quá yếu.';
+      } else if (e.code == 'requires-recent-login') {
+        throw 'Phiên làm việc hết hạn. Vui lòng đăng xuất và đăng nhập lại để đổi mật khẩu.';
+      }
+      throw 'Lỗi hệ thống: ${e.message}';
+    } catch (e) {
+      throw e.toString();
     }
   }
 

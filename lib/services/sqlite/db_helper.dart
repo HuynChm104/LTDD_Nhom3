@@ -1,6 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import '../models/product_model.dart';
+import '../../models/product_model.dart';
 
 class DBHelper {
   static Database? _db;
@@ -42,7 +42,10 @@ class DBHelper {
         'description': product.description,
         'basePrice': product.basePrice,
         'isBestSeller': product.isBestSeller ? 1 : 0, // SQLite không có bool
-        'image': product.image,
+        'image': (product.image.isNotEmpty && product.image.startsWith('http'))
+            ? product.image
+            : 'https://via.placeholder.com/300x300.png?text=No+Image',
+
       }, conflictAlgorithm: ConflictAlgorithm.replace);
     }
     await batch.commit();
@@ -61,7 +64,11 @@ class DBHelper {
         description: maps[i]['description'],
         basePrice: maps[i]['basePrice'],
         isBestSeller: maps[i]['isBestSeller'] == 1,
-        image: maps[i]['image'],
+        image: (maps[i]['image'] != null &&
+            maps[i]['image'].toString().startsWith('http'))
+            ? maps[i]['image']
+            : 'https://via.placeholder.com/300x300.png?text=No+Image',
+
       );
     });
   }
