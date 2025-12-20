@@ -2,5 +2,6 @@
 <resources>
     <string name="app_name">bongbieng_app</string>
     <string name="facebook_app_id">876477621565568</string>
+    <string name="facebook_client_token">your_facebook_client_token_here</string>
     <string name="fb_login_protocol_scheme">fb876477621565568</string>
 </resources>

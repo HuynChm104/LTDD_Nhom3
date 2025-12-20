@@ -40,7 +40,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="fb@string/facebook_app_id" />
+                <data android:scheme="fb876477621565568" />
             </intent-filter>
         </activity>
 

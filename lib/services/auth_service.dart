@@ -254,19 +254,10 @@ class AuthService {
         throw Exception('Email không được để trống');
       }
 
-      // Firebase sẽ tự kiểm tra email có tồn tại hay không
-      await _auth.sendPasswordResetEmail(
-        email: email,
-        actionCodeSettings: ActionCodeSettings(
-          url: 'https://bongbieng-app.firebaseapp.com/reset-password',
-          handleCodeInApp: true,
-          dynamicLinkDomain: "bongbieng-app.firebaseapp.com",
-          androidInstallApp: true,
-          androidMinimumVersion: "21",
-          androidPackageName: "com.example.bongbieng_app",
-          iOSBundleId: "com.example.bongBieng",
-        ),
-      );
+      // Gửi email reset password với cấu hình mặc định của Firebase
+      // KHÔNG dùng actionCodeSettings để tránh vấn đề domain whitelisting
+      // Firebase sẽ tự động gửi link reset password tiêu chuẩn
+      await _auth.sendPasswordResetEmail(email: email);
     } on FirebaseAuthException catch (e) {
       throw Exception(_handleAuthException(e));
     } catch (e) {
