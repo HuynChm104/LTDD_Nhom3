@@ -1,10 +1,10 @@
-// lib/screens/auth/register_screen.dart
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/constants.dart';
 import '../splash/splash_screen.dart';
+import 'package:flutter/services.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -221,12 +221,13 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                               prefixIcon: Icon(Icons.email_outlined),
                             ),
                             validator: (value) {
-                              if (value == null || value.isEmpty) {
+                              if (value == null || value.trim().isEmpty) {
                                 return 'Vui lòng nhập email';
                               }
-                              final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-                              if (!emailRegex.hasMatch(value)) {
-                                return 'Email không hợp lệ';
+                              // Regex chuẩn quốc tế: Chặn chữ có dấu, yêu cầu định dạng abc@xyz.com
+                              final emailRegex = RegExp(r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$");
+                              if (!emailRegex.hasMatch(value.trim())) {
+                                return 'Email không hợp lệ hoặc chứa ký tự có dấu';
                               }
                               return null;
                             },
@@ -235,10 +236,24 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                           TextFormField(
                             controller: _phoneController,
                             keyboardType: TextInputType.phone,
+                            inputFormatters: [
+                              // Chỉ cho phép nhập số và dấu cộng (+) cho mã vùng quốc tế
+                              FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                              LengthLimitingTextInputFormatter(15), // Độ dài tối đa chuẩn quốc tế (E.164) là 15 ký tự
+                            ],
                             decoration: const InputDecoration(
-                              hintText: 'Số điện thoại (không bắt buộc)',
+                              hintText: 'Số điện thoại',
                               prefixIcon: Icon(Icons.phone_outlined),
                             ),
+                            validator: (value) {
+                              if (value != null && value.isNotEmpty) {
+                                // Kiểm tra độ dài tối thiểu thông thường (ít nhất 7 số cho các quốc gia có SĐT ngắn)
+                                if (value.length < 7) {
+                                  return 'Số điện thoại không hợp lệ';
+                                }
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 16),
                           TextFormField(

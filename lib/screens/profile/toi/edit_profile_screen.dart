@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:bongbieng_app/providers/auth_provider.dart';
 import 'package:bongbieng_app/models/user_model.dart';
 import 'package:bongbieng_app/utils/constants.dart';
+import 'package:flutter/services.dart';
 
 class EditProfileScreen extends StatefulWidget {
   // Nhận UserModel để biết dữ liệu cũ
@@ -110,7 +111,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Vui lòng không để trống tên';
+                    return 'Tên hiển thị không được để trống';
                   }
                   return null;
                 },
@@ -121,10 +122,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                  LengthLimitingTextInputFormatter(15),
+                ],
                 decoration: const InputDecoration(
-                  hintText: 'Nhập số điện thoại',
+                  hintText: 'Số điện thoại',
                   prefixIcon: Icon(Icons.phone_outlined),
                 ),
+                validator: (value) {
+                  // Nếu để trống hoặc chỉ có khoảng trắng thì hợp lệ
+                  if (value == null || value.trim().isEmpty) {
+                    return null;
+                  }
+                  // Nếu đã nhập thì phải kiểm tra độ dài
+                  if (value.trim().length < 7) {
+                    return 'Số điện thoại không hợp lệ';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 24),
 
@@ -134,9 +150,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               TextFormField(
                 controller: _addressController,
                 decoration: const InputDecoration(
-                  hintText: 'Nhập địa chỉ của bạn',
+                  hintText: 'Địa chỉ giao hàng',
                   prefixIcon: Icon(Icons.location_on_outlined),
                 ),
+                validator: (value) {
+                  // Cho phép để trống địa chỉ
+                  if (value == null || value.trim().isEmpty) {
+                    return null;
+                  }
+                  // Nếu nhập thì nên nhập dài hơn 5 ký tự để có ý nghĩa
+                  if (value.trim().length < 5) {
+                    return 'Nhập địa chỉ chi tiết hơn nhé!';
+                  }
+                  return null;
+                },
               ),
 
               const SizedBox(height: 40),
@@ -148,7 +175,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   height: 24,
                   child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
                 )
-                    : const Text('Lưu Thay Đổi'),
+                    : const Text('Lưu thay đổi'),
               ),
             ],
           ),

@@ -180,6 +180,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         child: Column(
                           children: [
                             // Email Field
+                            // Email Field
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
@@ -188,13 +189,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 prefixIcon: Icon(Icons.email_outlined),
                               ),
                               validator: (value) {
-                                if (value == null || value.isEmpty) {
+                                if (value == null || value.trim().isEmpty) {
                                   return 'Vui lòng nhập email';
                                 }
-                                final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-                                if (!emailRegex.hasMatch(value)) {
+
+                                // Regex này chỉ cho phép: chữ cái không dấu (a-z), số (0-9), dấu chấm, dấu gạch ngang, gạch dưới
+                                // Chặn hoàn toàn các ký tự tiếng Việt có dấu (à, á, ẹ, ô...)
+                                final emailRegex = RegExp(r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$");
+
+                                if (!emailRegex.hasMatch(value.trim())) {
                                   return 'Email không hợp lệ';
                                 }
+
                                 return null;
                               },
                             ),
