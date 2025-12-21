@@ -133,7 +133,6 @@ class ProfileScreen extends StatelessWidget {
                 _MenuItem(
                   icon: Icons.workspace_premium_outlined,
                   label: "Hạng Thành viên",
-                  subtitle: "Sắp lên hạng Bạc",
                   leading: Image.asset(
                     'assets/images/hoa.jpg',
                     width: 28,

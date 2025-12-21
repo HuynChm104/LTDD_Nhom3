@@ -64,19 +64,67 @@ class OrderDetailScreen extends StatelessWidget {
 
   // 2. Địa chỉ (Giữ nguyên)
   Widget _buildAddressSection() {
+// SỬA LOGIC TẠI ĐÂY
+    bool isPickUp = order.address != null &&
+        (!order.address.contains(',') || order.address == "Tại quán");
+
     return _buildSection(
-      title: "Thông tin giao hàng",
-      icon: Icons.location_on_outlined,
+      title: isPickUp ? "Thông tin nhận hàng" : "Thông tin giao hàng",
+      icon: isPickUp ? Icons.storefront_outlined : Icons.location_on_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(order.customerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
           const SizedBox(height: 4),
           Text(order.customerPhone, style: const TextStyle(color: AppColors.textGrey)),
-          const SizedBox(height: 4),
-          Text(order.address, style: const TextStyle(color: AppColors.textGrey)),
+          const SizedBox(height: 8),
+        // Khung hiển thị địa chỉ hoặc chi nhánh
+        Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+            ),
+            child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+            Icon(
+            isPickUp ? Icons.home_work_outlined : Icons.map_outlined,
+                size: 16,
+                color: AppColors.primary
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isPickUp ? "Chi nhánh lấy món:" : "Địa chỉ giao:",
+                    style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    order.address,
+                    style: const TextStyle(
+                        color: AppColors.textDark,
+                        height: 1.4,
+                        fontWeight: FontWeight.w500
+                    ),
+                  )
+                ]
+              )
+            )
         ],
       ),
+    )
+        ]
+      )
     );
   }
 

@@ -220,12 +220,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     double discount = _calculateDiscount(subtotal, shipping, cartProvider, productProvider);
     double finalTotal = subtotal + shipping - discount;
 
+    String finalAddress = "";
+    if (_deliveryType == 0) {
+      finalAddress = _addressController.text.trim();
+    } else {
+      // Tìm branch trong danh sách dựa trên ID đã chọn
+      final branchProvider = context.read<BranchProvider>();
+      final selectedBranch = branchProvider.allBranches.firstWhere(
+            (b) => b.id == _selectedBranchId,
+        orElse: () => branchProvider.allBranches.first,
+      );
+      finalAddress = selectedBranch.name; // Gán tên chi nhánh (VD: Bông Biêng - Phố Huế)
+    }
+
     final newOrder = OrderModel(
       id: "DH${DateTime.now().millisecondsSinceEpoch}",
       userId: authProvider.user?.id ?? 'guest',
       customerName: _nameController.text.trim(),
       customerPhone: _phoneController.text.trim(),
-      address: _deliveryType == 0 ? _addressController.text.trim() : "Tại quán",
+      address: finalAddress,
       paymentMethod: _paymentMethod,
       items: orderItems,
       subtotal: subtotal,

@@ -11,6 +11,12 @@ class OrderSuccessScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    // Logic xác định loại đơn hàng dựa trên chuỗi địa chỉ
+// SỬA LOGIC TẠI ĐÂY
+    bool isPickUp = order.address != null &&
+        (!order.address.contains(',') || order.address == "Tại quán");
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -58,7 +64,12 @@ class OrderSuccessScreen extends StatelessWidget {
                     _buildInfoRow("Mã đơn hàng", order.id),
                     _buildInfoRow("Tổng tiền", NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(order.totalAmount)),
                     _buildInfoRow("Thanh toán", order.paymentMethod.toUpperCase()),
-                    _buildInfoRow("Trạng thái", "Đang xử lý"),
+                    _buildInfoRow(
+                        isPickUp ? "Nhận tại chi nhánh" : "Địa chỉ giao hàng",
+                        order.address ?? "Không có thông tin"
+                    ),
+
+                    _buildInfoRow("Trạng thái", "Đang xử lý")
                   ],
                 ),
               ),
@@ -105,10 +116,18 @@ class OrderSuccessScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark)),
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+          const SizedBox(width: 20),
+          Expanded( // Dùng Expanded để chữ tự động xuống dòng nếu quá dài
+            child: Text(
+                value,
+                textAlign: TextAlign.right,
+                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark, fontSize: 14)
+            ),
+          ),
         ],
       ),
     );
