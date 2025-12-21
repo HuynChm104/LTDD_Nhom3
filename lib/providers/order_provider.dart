@@ -19,7 +19,7 @@ class OrderProvider with ChangeNotifier {
         _isLoading = false;
         notifyListeners();
         if (result != null && result['returncode'] == 1) {
-          return result['orderurl'];
+          return result['orderurl'].toString();
         }
         return null;
       } else {

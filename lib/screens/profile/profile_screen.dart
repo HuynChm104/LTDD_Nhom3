@@ -14,6 +14,7 @@ import 'package:bongbieng_app/screens/profile/khac/feedback_dialog.dart';
 
 import '../../providers/cart_provider.dart';
 import '../auth/welcome_screen.dart';
+import 'khac/point_history_screen.dart';
 import 'toi/myorders/order_history_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -131,7 +132,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 _MenuItem(
                   icon: Icons.workspace_premium_outlined,
-                  label: "Hạng Thành viên: Mới",
+                  label: "Hạng Thành viên",
                   subtitle: "Sắp lên hạng Bạc",
                   leading: Image.asset(
                     'assets/images/hoa.jpg',
@@ -191,7 +192,15 @@ class ProfileScreen extends StatelessWidget {
                       );
                     }
                 ),
-                _MenuItem(icon: Icons.history_outlined, label: "Lịch sử điểm"),
+                _MenuItem(
+                    icon: Icons.history_outlined,
+                    label: "Lịch sử điểm",
+                onTap: (){
+                      Navigator.push(
+                        context,
+                          MaterialPageRoute(builder: (context) => const PointHistoryScreen()),
+                      );
+                }),
                 _MenuItem(
                   icon: Icons.logout,
                   label: "Đăng xuất",
