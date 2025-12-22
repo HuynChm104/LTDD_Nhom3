@@ -21,6 +21,7 @@ class VoucherScreen extends StatelessWidget {
         backgroundColor: AppColors.background,
         appBar: AppBar(
           title: Text(isSelectionMode ? 'Chọn Voucher' : 'Kho Voucher'),
+          centerTitle: true,
           backgroundColor: AppColors.primaryLight,
         ),
         body: Column(

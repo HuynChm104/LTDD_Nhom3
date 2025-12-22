@@ -3,16 +3,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bongbieng_app/main.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-// HÀM GIẢ LẬP FIREBASE (Để tránh lỗi Crash khi chạy test)
+// ================= MOCK FIREBASE CORE =================
 void setupFirebaseMocks() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  // Giả lập Firebase Core
-  const MethodChannel channel = MethodChannel('plugins.flutter.io/firebase_core');
+  const MethodChannel channel =
+  MethodChannel('plugins.flutter.io/firebase_core');
 
-  // Đăng ký mock handler để trả về thành công cho mọi lệnh gọi Firebase
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(
     channel,
         (MethodCall methodCall) async {
       if (methodCall.method == 'Firebase#initializeCore') {
@@ -20,10 +21,10 @@ void setupFirebaseMocks() {
           {
             'name': '[DEFAULT]',
             'options': {
-              'apiKey': '123',
-              'appId': '123',
-              'messagingSenderId': '123',
-              'projectId': '123',
+              'apiKey': 'test',
+              'appId': 'test',
+              'messagingSenderId': 'test',
+              'projectId': 'test',
             },
             'pluginConstants': {},
           }
@@ -42,28 +43,24 @@ void setupFirebaseMocks() {
 }
 
 void main() {
-  // 1. Gọi hàm setup Mock trước khi chạy test
   setupFirebaseMocks();
 
   setUpAll(() async {
-    // Khởi tạo Firebase giả
     await Firebase.initializeApp();
   });
 
-  testWidgets('Test xem App co khoi dong dung man hinh startScreen khong', (WidgetTester tester) async {
-    // 2. TẠO MỘT MÀN HÌNH GIẢ ĐỂ TEST
-    const Widget myTestScreen = Scaffold(
-      body: Center(
-        child: Text('Day la man hinh Test'),
-      ),
-    );
+  testWidgets(
+    'App khoi dong khi CHUA dang nhap thi hien WelcomeScreen',
+        (WidgetTester tester) async {
+      // Pump app
+      await tester.pumpWidget(const BongBiengApp());
 
-    // 3. KHỞI TẠO APP VỚI MÀN HÌNH GIẢ
-    await tester.pumpWidget(const BongBiengApp(startScreen: myTestScreen));
-    await tester.pump();
+      // Cho StreamBuilder rebuild
+      await tester.pumpAndSettle();
 
-    // 4. KIỂM TRA KẾT QUẢ (VERIFY)
-    expect(find.text('Day la man hinh Test'), findsOneWidget);
-    expect(find.text('0'), findsNothing);
-  });
+      // Verify: WelcomeScreen tồn tại
+      expect(find.byType(Scaffold), findsWidgets);
+      expect(find.textContaining('Chào'), findsWidgets);
+    },
+  );
 }

@@ -76,6 +76,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Chỉnh Sửa Hồ Sơ'),
+        backgroundColor: AppColors.primaryLight,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),

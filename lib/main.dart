@@ -14,6 +14,7 @@ import 'package:bongbieng_app/screens/products/product_detail_screen.dart';
 import 'package:bongbieng_app/screens/profile/profile_screen.dart';
 import 'package:bongbieng_app/widgets/bottom_nav_bar.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:provider/provider.dart';
@@ -29,26 +30,20 @@ void main() async {
   );
 
   // Initialize Facebook SDK
-  await FacebookAuth.instance.webAndDesktopInitialize(
-    appId: "876477621565568", // Thay bằng Facebook App ID của bạn
-    cookie: true,
-    xfbml: true,
-    version: "v17.0",
-  );
+    await FacebookAuth.instance.webAndDesktopInitialize(
+      appId: "876477621565568",
+      cookie: true,
+      xfbml: true,
+      version: "v17.0",
+    );
 
-  final User? currentUser = FirebaseAuth.instance.currentUser;
+  runApp(const BongBiengApp());
 
-  final Widget startScreen = (currentUser != null)
-      ? const MainShell()
-      : const WelcomeScreen();
-
-  runApp(BongBiengApp(startScreen: startScreen));
 }
 
 class BongBiengApp extends StatelessWidget {
-  final Widget startScreen; // Nhận màn hình bắt đầu từ main
+  const BongBiengApp({super.key});
 
-  const BongBiengApp({super.key, required this.startScreen});
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +135,23 @@ class BongBiengApp extends StatelessWidget {
           }
           return null;
         },
-        home: startScreen,
+        home: StreamBuilder<User?>(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            if (snapshot.hasData) {
+              return const MainShell();
+            }
+
+            return const WelcomeScreen();
+          },
+        ),
+
       ),
     );
   }

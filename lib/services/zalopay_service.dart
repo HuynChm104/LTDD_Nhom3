@@ -42,20 +42,21 @@ class ZaloPayService {
       final response = await http.post(
         Uri.parse(endpoint),
         body: {
-          "appid": appId,           // KHÔNG có dấu gạch dưới
-          "appuser": appUser,       // KHÔNG có dấu gạch dưới
-          "apptransid": appTransId, // KHÔNG có dấu gạch dưới
+          "appid": appId,
+          "appuser": appUser,
+          "apptransid": appTransId,
           "apptime": appTime.toString(),
           "amount": amount.toString(),
           "item": item,
-          "embeddata": embedData,   // KHÔNG có dấu gạch dưới
+          "embeddata": embedData,
           "description": "Thanh toan don hang Bong Bieng #$appTransId",
           "bankcode": "zalopayapp", // Bắt buộc cho mô hình Mobile Web to App
           "mac": hashMac,           // Thông tin chứng thực
         },
       );
 
-      print("Response Body: ${response.body}");
+
+    print("Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);

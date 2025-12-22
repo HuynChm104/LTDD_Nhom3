@@ -129,7 +129,50 @@ class AuthService {
       final OAuthCredential facebookAuthCredential =
       FacebookAuthProvider.credential(loginResult.accessToken!.token);
 
-      final userCredential = await _auth.signInWithCredential(facebookAuthCredential);
+      UserCredential userCredential;
+
+      try {
+        userCredential = await _auth.signInWithCredential(facebookAuthCredential);
+      } on FirebaseAuthException catch (e) {
+        // Xử lý khi email đã tồn tại với phương thức khác
+        if (e.code == 'account-exists-with-different-credential') {
+          // Lấy dữ liệu người dùng từ Facebook để có email
+          final userData = await FacebookAuth.instance.getUserData(
+            fields: "email",
+          );
+
+          final facebookEmail = userData['email'] as String?;
+
+          if (facebookEmail == null) {
+            throw 'Không thể lấy email từ Facebook. Vui lòng thử lại.';
+          }
+
+          // Tìm tài khoản hiện có và hướng dẫn user liên kết
+          try {
+            // Lấy tất cả provider methods của email này
+            final methods = await _auth.fetchSignInMethodsForEmail(facebookEmail);
+
+            if (methods.contains('password')) {
+              // Email đã đăng ký bằng email/password, yêu cầu user đăng nhập trước
+              throw 'Email này đã được đăng ký bằng Email/Password. Vui lòng đăng nhập bằng email & mật khẩu trước, sau đó liên kết Facebook trong cài đặt tài khoản.';
+            } else if (methods.contains('google.com')) {
+              // Email đã liên kết với Google
+              throw 'Email này đã được liên kết với Google. Vui lòng đăng nhập bằng Google, sau đó liên kết Facebook trong cài đặt tài khoản.';
+            } else {
+              throw 'Email này đã được sử dụng. Vui lòng đăng nhập với phương thức khác và liên kết trong cài đặt tài khoản.';
+            }
+          } catch (e) {
+            rethrow;
+          }
+        }
+
+        if (e.code == 'invalid-credential') {
+          throw 'Thông tin đăng nhập không hợp lệ. Vui lòng thử lại.';
+        } else if (e.code == 'operation-not-allowed') {
+          throw 'Đăng nhập Facebook hiện chưa được bật. Liên hệ quản trị viên.';
+        }
+        throw 'Lỗi Firebase: ${e.message}';
+      }
 
       // Lấy dữ liệu người dùng từ Facebook
       final userData = await FacebookAuth.instance.getUserData(
@@ -150,20 +193,10 @@ class AuthService {
         }, SetOptions(merge: true));
       }
       return userCredential;
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'account-exists-with-different-credential') {
-        throw 'Email này đã được sử dụng với phương thức đăng nhập khác. Vui lòng sử dụng phương thức đó để đăng nhập.';
-      } else if (e.code == 'invalid-credential') {
-        throw 'Thông tin đăng nhập không hợp lệ. Vui lòng thử lại.';
-      } else if (e.code == 'operation-not-allowed') {
-        throw 'Đăng nhập Facebook hiện chưa được bật. Liên hệ quản trị viên.';
-      }
-      throw 'Lỗi Firebase: ${e.message}';
     } catch (e) {
       throw 'Lỗi đăng nhập Facebook: $e';
     }
   }
-
   Future<void> updateUserProfile({
     required String displayName,
     String? phoneNumber,
